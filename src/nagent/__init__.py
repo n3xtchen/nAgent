@@ -20,6 +20,9 @@ from .eval import (
     run_experiment,
     generate_testset
 )
+from .parser import (
+    PDFParser
+)
 
 __all__ = [
     "SimpleRAG",
@@ -35,5 +38,6 @@ __all__ = [
     "GoogleGenAIWrapper",
     "run_evaluation",
     "run_experiment",
-    "generate_testset"
+    "generate_testset",
+    "PDFParser"
 ]
