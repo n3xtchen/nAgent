@@ -36,19 +36,6 @@ def test_rag_query_flow():
     # Verify that the LLM was called
     mock_llm.models.generate_content.assert_called_once()
 
-def test_simple_agent_query():
-    # Mock the LLM client
-    mock_llm = MagicMock()
-    mock_response = MagicMock()
-    mock_response.text = '```json\n{"answer": "Paris is the capital of France."}\n```'
-    mock_llm.models.generate_content.return_value = mock_response
-
-    agent = SimpleAgent(client=mock_llm)
-    result = agent.query("What is the capital of France?")
-
-    assert result["answer"] == "Paris is the capital of France."
-    mock_llm.models.generate_content.assert_called_once()
-
 def test_retriever_ranking():
     retriever = SimpleKeywordRetriever()
     retriever.fit(DOCUMENTS)

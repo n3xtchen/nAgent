@@ -17,6 +17,7 @@ resolution-markers = [
 [manifest]
 members = [
     "nagent",
+    "nagent-core",
     "nagent-project",
 ]
 
@@ -2440,6 +2441,7 @@ dependencies = [
     { name = "jupytext" },
     { name = "langchain-google-genai" },
     { name = "matplotlib" },
+    { name = "nagent-core" },
     { name = "paddlenlp" },
     { name = "paddleocr" },
     { name = "pillow" },
@@ -2459,6 +2461,7 @@ requires-dist = [
     { name = "jupytext", specifier = ">=1.19.1" },
     { name = "langchain-google-genai", specifier = ">=4.2.0" },
     { name = "matplotlib", specifier = ">=3.10.8" },
+    { name = "nagent-core", editable = "libs/nagent-core" },
     { name = "paddlenlp", specifier = ">=2.5.2" },
     { name = "paddleocr", specifier = ">=3.3.3" },
     { name = "pillow", specifier = ">=12.1.0" },
@@ -2467,6 +2470,21 @@ requires-dist = [
     { name = "ragas", specifier = ">=0.4.3" },
     { name = "torch", specifier = ">=2.10.0" },
     { name = "unstructured", extras = ["md", "pdf"], specifier = ">=0.18.27" },
+]
+
+[[package]]
+name = "nagent-core"
+version = "0.1.0"
+source = { editable = "libs/nagent-core" }
+dependencies = [
+    { name = "google-genai" },
+    { name = "tenacity" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "google-genai", specifier = ">=1.61.0" },
+    { name = "tenacity", specifier = ">=8.2.0" },
 ]
 
 [[package]]

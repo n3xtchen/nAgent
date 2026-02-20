@@ -1,6 +1,6 @@
 import json
 import pytest
-from nagent.utils import is_retryable_error, robust_json_parse
+from nagent_core.utils import is_retryable_error, robust_json_parse
 from google.genai import errors
 
 def test_is_retryable_error():

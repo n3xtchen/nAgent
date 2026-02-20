@@ -1,0 +1,14 @@
+[project]
+name = "nagent-core"
+version = "0.1.0"
+description = "Core agent logic for nAgent"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "google-genai>=1.61.0",
+    "tenacity>=8.2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
