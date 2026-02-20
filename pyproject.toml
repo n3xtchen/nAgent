@@ -1,26 +1,13 @@
 [project]
-name = "nagent"
+name = "nagent-project"
 version = "0.1.0"
-description = "Add your description here"
+description = "nAgent Workspace"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "google-genai>=1.61.0",
-    "html2text>=2025.4.15",
-    "jsonref>=1.1.0",
-    "jieba>=0.42.1",
-    "jupytext>=1.19.1",
-    "langchain-google-genai>=4.2.0",
-    "matplotlib>=3.10.8",
-    "paddlenlp>=2.5.2",
-    "paddleocr>=3.3.3",
-    "pillow>=12.1.0",
-    "pymupdf>=1.26.7",
-    "python-multipart>=0.0.22",
-    "ragas>=0.4.3",
-    "torch>=2.10.0",
-    "unstructured[md,pdf]>=0.18.27",
-]
+dependencies = []
+
+[tool.uv]
+workspace = { members = ["apps/*"] }
 
 [dependency-groups]
 dev = [
@@ -40,15 +27,15 @@ dev = [
 ]
 
 [tool.pyright]
-include = ["src", "tests"]
+include = ["apps/nagent/src", "apps/nagent/tests"]
 exclude = ["**/__pycache__"]
 venvPath = "."
 venv = ".venv"
-extraPaths = ["src"]
+extraPaths = ["apps/nagent/src"]
 executionEnvironments = [
-  { root = "src" }
+  { root = "apps/nagent/src" }
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["apps/nagent/src"]
 asyncio_mode = "auto"
