@@ -19,6 +19,7 @@ members = [
     "nagent",
     "nagent-core",
     "nagent-project",
+    "nagent-rag",
 ]
 
 [[package]]
@@ -2442,6 +2443,7 @@ dependencies = [
     { name = "langchain-google-genai" },
     { name = "matplotlib" },
     { name = "nagent-core" },
+    { name = "nagent-rag" },
     { name = "paddlenlp" },
     { name = "paddleocr" },
     { name = "pillow" },
@@ -2462,6 +2464,7 @@ requires-dist = [
     { name = "langchain-google-genai", specifier = ">=4.2.0" },
     { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "nagent-core", editable = "libs/nagent-core" },
+    { name = "nagent-rag", editable = "libs/nagent-rag" },
     { name = "paddlenlp", specifier = ">=2.5.2" },
     { name = "paddleocr", specifier = ">=3.3.3" },
     { name = "pillow", specifier = ">=12.1.0" },
@@ -2527,6 +2530,20 @@ dev = [
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "viztracer", specifier = ">=1.1.1" },
 ]
+
+[[package]]
+name = "nagent-rag"
+version = "0.1.0"
+source = { editable = "libs/nagent-rag" }
+
+[package.optional-dependencies]
+jieba = [
+    { name = "jieba" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "jieba", marker = "extra == 'jieba'", specifier = ">=0.42.1" }]
+provides-extras = ["jieba"]
 
 [[package]]
 name = "nbformat"

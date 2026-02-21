@@ -1,0 +1,14 @@
+[project]
+name = "nagent-rag"
+version = "0.1.0"
+description = "RAG related components for nAgent"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[project.optional-dependencies]
+jieba = ["jieba>=0.42.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
