@@ -27,17 +27,18 @@ dev = [
 ]
 
 [tool.pyright]
-include = ["apps/nagent/src", "apps/nagent/tests", "libs/nagent-core/src", "libs/nagent-core/tests", "libs/nagent-rag/src", "libs/nagent-rag/tests"]
+include = ["apps/nagent/src", "apps/nagent/tests", "apps/agentic-rag/src", "apps/agentic-rag/tests", "libs/nagent-core/src", "libs/nagent-core/tests", "libs/nagent-rag/src", "libs/nagent-rag/tests"]
 exclude = ["**/__pycache__"]
 venvPath = "."
 venv = ".venv"
-extraPaths = ["apps/nagent/src", "libs/nagent-core/src", "libs/nagent-rag/src"]
+extraPaths = ["apps/nagent/src", "apps/agentic-rag/src", "libs/nagent-core/src", "libs/nagent-rag/src"]
 executionEnvironments = [
   { root = "apps/nagent/src" },
+  { root = "apps/agentic-rag/src" },
   { root = "libs/nagent-core/src" },
   { root = "libs/nagent-rag/src" }
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["apps/nagent/src", "libs/nagent-core/src", "libs/nagent-rag/src"]
+pythonpath = ["apps/nagent/src", "apps/agentic-rag/src", "libs/nagent-core/src", "libs/nagent-rag/src"]
 asyncio_mode = "auto"

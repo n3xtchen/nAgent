@@ -40,20 +40,24 @@
 
 ## 4. 演进路线图 (Roadmap)
 
-### Phase 1: 基础构建 (Foundation)
-- 实现基础的 Agent 循环框架。
-- 集成现有的 `nagent-rag` 关键词匹配功能作为首个工具。
-- 实现简单的查询改写逻辑。
+### Phase 1: 基础构建 (Foundation - 已完成)
+*   **核心 Agent 循环**：实现基于 `ReAct` (Thought-Action-Observation) 的 `ReActAgent` 推理循环。
+*   **基础工具抽象**：定义 `BaseTool` 接口，规范化工具定义与调用方式。
+*   **单工具集成**：将现有的 `nagent-rag` 检索功能封装为 `RetrieverTool`。
+*   **基础提示词工程**：设计 Zero-shot ReAct 思考模板，引导 Agent 进行初步推理。
+*   **编排层实现**：在 `apps/agentic-rag` 中完成 Agent 与 Retriever 的初步集成。
 
-### Phase 2: 推理增强 (Reasoning & Reflection)
-- 引入 ReAct 思考模版。
-- 实现查询拆解逻辑，支持跨文档的多点检索。
-- 加入初步的自反思环节，评估检索内容的相关性。
+### Phase 2: 能力扩展与推理增强 (Reasoning & Tools)
+*   **多工具支持 (Multi-tools)**：新增 WebSearch、Calculator 或代码执行工具，实现 Agent 的多工具选择与组合能力。
+*   **提示词优化 (Prompt Engineering)**：引入 Few-shot 示例动态注入，优化工具参数描述，提升推理稳定性。
+*   **解析器增强**：升级 Action 解析器，支持 JSON 等结构化参数，增强对 LLM 输出波动的鲁棒性。
+*   **高级 RAG 逻辑集成**：实现 Agent 触发的查询拆解 (Query Decomposition) 和自主查询改写逻辑。
 
-### Phase 3: 性能优化与混合检索 (Optimization)
-- 集成向量检索，并实现 Hybrid Search（向量 + 关键词）。
-- 优化长上下文处理策略。
-- 引入检索后的重排 (Rerank) 机制。
+### Phase 3: 生产级优化与长效管理 (Production & Optimization)
+*   **长效记忆 (Memory)**：引入对话上下文管理（如 ConversationBuffer/Summary），支持多轮复杂对话。
+*   **性能优化**：全面实现异步并发调用（Async/Parallel），支持单轮产生多个并行 Action。
+*   **用户交互提升**：支持 Thought 过程的流式输出 (Streaming)，提供更好的 UI 反馈。
+*   **评估与监控 (Evaluation & Monitoring)**：集成 RAGAS 评估框架，建立 Trace 追踪机制，量化推理轨迹与回答质量。
 
 ## 5. 评估与质量控制
 

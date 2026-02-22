@@ -1,18 +1,19 @@
 [project]
-name = "nagent-rag"
+name = "agentic-rag"
 version = "0.1.0"
-description = "RAG related components for nAgent"
+description = "Agentic RAG Application"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "nagent-core",
+    "nagent-rag",
+    "google-genai>=1.61.0",
+    "python-dotenv>=1.2.1",
 ]
 
 [tool.uv.sources]
 nagent-core = { workspace = true }
-
-[project.optional-dependencies]
-jieba = ["jieba>=0.42.1"]
+nagent-rag = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
