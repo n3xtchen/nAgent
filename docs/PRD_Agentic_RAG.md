@@ -46,6 +46,7 @@
 *   **单工具集成**：将现有的 `nagent-rag` 检索功能封装为 `RetrieverTool`。
 *   **基础提示词工程**：设计 Zero-shot ReAct 思考模板，引导 Agent 进行初步推理。
 *   **编排层实现**：在 `apps/agentic-rag` 中完成 Agent 与 Retriever 的初步集成。
+*   **可运行程序**：提供 CLI 入口点和示例脚本，支持端到端的基础问答流程。
 
 ### Phase 2: 能力扩展与推理增强 (Reasoning & Tools)
 *   **多工具支持 (Multi-tools)**：新增 WebSearch、Calculator 或代码执行工具，实现 Agent 的多工具选择与组合能力。
