@@ -12,15 +12,15 @@ def test_simple_keyword_retriever():
     # Test query that matches one document
     results = retriever.get_top_k("Python", k=1)
     assert len(results) == 1
-    assert results[0][0] == 0
-    assert results[0][1] == 1
+    assert "Python" in results[0]["content"]
+    assert results[0]["_score"] == 1
 
     # Test query with multiple matches
     results = retriever.get_top_k("is a", k=2)
     assert len(results) == 2
     # Both doc 0 and doc 1 have "is" and "a" (if space split)
-    assert results[0][1] == 2
-    assert results[1][1] == 2
+    assert results[0]["_score"] == 2
+    assert results[1]["_score"] == 2
 
 def test_tokenizer_fallback():
     # Test with non-existent tokenizer or missing jieba

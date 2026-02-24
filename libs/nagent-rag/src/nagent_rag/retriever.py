@@ -1,21 +1,44 @@
-from typing import List, Any
+import json
+from typing import List, Any, Dict, Optional
 from nagent_core.tool import BaseTool
 
 class BaseRetriever:
     """
     Base class for retrievers.
-    Subclasses should implement the fit and get_top_k methods.
+    Subclasses should implement the fit, get_top_k, save_index and load_index methods.
     """
 
     def __init__(self):
-        self.documents = []
+        self.documents: List[Dict[str, Any]] = []
 
-    def fit(self, documents: List[str]):
-        """Store the documents"""
-        self.documents = documents
+    def fit(self, documents: List[Any]):
+        """
+        Store the documents.
+        Each document should be a dict with at least 'content' key,
+        or a simple string (which will be converted to a dict).
+        Optional keys: 'id', 'metadata'.
+        """
+        normalized_docs = []
+        for doc in documents:
+            if isinstance(doc, str):
+                normalized_docs.append({"content": doc})
+            elif isinstance(doc, dict):
+                normalized_docs.append(doc)
+            else:
+                # Fallback for other types
+                normalized_docs.append({"content": str(doc)})
+        self.documents = normalized_docs
 
-    def get_top_k(self, query: str, k: int = 3) -> List[tuple]:
+    def get_top_k(self, query: str, k: int = 3) -> List[Dict[str, Any]]:
         """Retrieve top-k most relevant documents for the query."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    def save_index(self, file_path: str):
+        """Save the index and documents to a file."""
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    def load_index(self, file_path: str):
+        """Load the index and documents from a file."""
         raise NotImplementedError("Subclasses should implement this method.")
 
 
@@ -50,18 +73,32 @@ class SimpleKeywordRetriever(BaseRetriever):
                 matches += 1
         return matches
 
-    def get_top_k(self, query: str, k: int = 3) -> List[tuple]:
+    def get_top_k(self, query: str, k: int = 3) -> List[Dict[str, Any]]:
         """Get top k documents by keyword match count"""
-        scores = []
+        scored_docs = []
 
-        for i, doc in enumerate(self.documents):
-            match_count = self._count_keyword_matches(query, doc)
-            scores.append((i, match_count))
+        for doc in self.documents:
+            match_count = self._count_keyword_matches(query, doc.get("content", ""))
+            if match_count > 0:
+                # Create a copy to avoid modifying original and include score
+                doc_with_score = doc.copy()
+                doc_with_score["_score"] = match_count
+                scored_docs.append(doc_with_score)
 
-        # Sort by match count (descending)
-        scores.sort(key=lambda x: x[1], reverse=True)
+        # Sort by score (descending)
+        scored_docs.sort(key=lambda x: x["_score"], reverse=True)
 
-        return scores[:k]
+        return scored_docs[:k]
+
+    def save_index(self, file_path: str):
+        """Save documents to a JSON file"""
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(self.documents, f, ensure_ascii=False, indent=2)
+
+    def load_index(self, file_path: str):
+        """Load documents from a JSON file"""
+        with open(file_path, "r", encoding="utf-8") as f:
+            self.documents = json.load(f)
 
 class RetrieverTool(BaseTool):
     """
@@ -75,15 +112,22 @@ class RetrieverTool(BaseTool):
         """
         根据查询语句检索相关文档。
         """
-        top_k = self.retriever.get_top_k(query)
-        # 过滤掉评分为 0 的结果
-        relevant_results = [idx for idx, score in top_k if score > 0]
+        top_k_docs = self.retriever.get_top_k(query)
 
-        if not relevant_results:
+        if not top_k_docs:
             return "没有找到相关文档。"
 
-        results = []
-        for idx in relevant_results:
-            results.append(self.retriever.documents[idx])
+        formatted_results = []
+        for i, doc in enumerate(top_k_docs):
+            content = doc.get("content", "")
+            doc_id = doc.get("id", f"doc_{i}")
+            metadata = doc.get("metadata", {})
 
-        return "\n---\n".join(results)
+            result_str = f"【结果 {i+1}】(ID: {doc_id})\n"
+            if metadata:
+                meta_str = ", ".join([f"{k}: {v}" for k, v in metadata.items()])
+                result_str += f"元数据: {meta_str}\n"
+            result_str += f"内容: {content}"
+            formatted_results.append(result_str)
+
+        return "\n\n---\n\n".join(formatted_results)

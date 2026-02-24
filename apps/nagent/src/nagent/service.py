@@ -80,13 +80,14 @@ class SimpleRAG:
         top_docs = self.retriever.get_top_k(query, k=top_k)
 
         retrieved_docs = []
-        for idx, score in top_docs:
+        for doc in top_docs:
+            score = doc.get("_score", 0)
             if score > 0:  # Only include documents with positive similarity scores
                 retrieved_docs.append(
                     {
-                        "content": self.documents[idx],
+                        "content": doc.get("content", ""),
                         "similarity_score": score,
-                        "document_id": idx,
+                        "document_id": doc.get("id", ""),
                     }
                 )
 

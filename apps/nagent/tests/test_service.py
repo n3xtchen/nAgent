@@ -43,5 +43,5 @@ def test_retriever_ranking():
     query = "melodic frameworks"
     top_docs = retriever.get_top_k(query, k=1)
 
-    assert top_docs[0][0] == 0
-    assert top_docs[0][1] >= 2
+    assert "melodic frameworks" in top_docs[0]["content"]
+    assert top_docs[0]["_score"] >= 2
