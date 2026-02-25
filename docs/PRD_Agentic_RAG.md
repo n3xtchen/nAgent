@@ -89,11 +89,10 @@
 *   **多工具支持 (Multi-tools)**：新增 WebSearch、Calculator 或代码执行工具，实现 Agent 的多工具选择与组合能力。
 *   **高级 RAG 逻辑集成**：实现 Agent 触发的查询拆解 (Query Decomposition) 和自主查询改写逻辑。
 
-### Phase 3: 生产级优化与长效管理 (Production & Optimization)
-*   **向量数据库集成**：引入外部向量数据库支持，应对更大规模的数据检索需求。
-*   **长效记忆 (Memory)**：引入对话上下文管理（如 ConversationBuffer/Summary），支持多轮复杂对话。
-*   **性能优化**：全面实现异步并发调用（Async/Parallel），支持单轮产生多个并行 Action。
+### Phase 3: 生产级优化与评估 (Production & Evaluation)
 *   **评估与监控 (Evaluation & Monitoring)**：集成 RAGAS 评估框架，建立 Trace 追踪机制，量化推理轨迹与回答质量。
+*   **系统鲁棒性增强**：完善错误处理机制（如 LLM 超时、工具调用失败重试），确保生产环境下的稳定性。
+*   **提示词工程优化 (Prompt Engineering)**：针对生产场景优化 Agent 推理模版，减少幻觉并提升回答的专业性。
 
 ## 7. 评估与质量控制
 
@@ -105,3 +104,12 @@
 ### 7.2 评估工具
 - 使用 RAGAS 或类似框架进行自动化评估。
 - 建立人工反馈数据集，持续微调 Prompt 策略。
+
+## 8. 待办与未来展望 (Backlog & Future Work)
+
+本章节记录了计划在更远期实现的高级功能与优化方向：
+
+*   **外部向量数据库集成**：引入如 Milvus、Pinecone 或 Weaviate 等专业向量数据库支持，以应对海量数据的索引与高性能检索需求。
+*   **长效记忆管理 (Advanced Memory)**：探索基于数据库的对话状态存储，引入 ConversationSummary 或集群记忆，支持更长周期的复杂多轮对话。
+*   **高并发性能优化**：全面重构为异步架构（Async/Parallel），支持在单轮推理中产生并并行执行多个 Action，显著降低端到端响应延迟。
+*   **多模态检索支持**：研究如何将图片、表格等多模态信息纳入 Agent 的检索与决策范畴。
