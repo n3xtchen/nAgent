@@ -1,4 +1,6 @@
 import os
+import json
+from datetime import datetime
 from typing import List, Optional, Dict, Any
 from nagent_core.agent import ReActAgent
 from nagent_core.tool import CalculatorTool, PythonInterpreterTool, WebSearchTool
@@ -19,11 +21,16 @@ class AgenticRAG:
         index_path: Optional[str] = None,
         use_query_rewrite: bool = False,
         use_query_decompose: bool = False,
+        trace_dir: Optional[str] = None,
     ):
         self.client = client
         self.retriever = retriever
         self.index_path = index_path
         self.model_name = model_name
+        self.trace_dir = trace_dir
+
+        if self.trace_dir and not os.path.exists(self.trace_dir):
+            os.makedirs(self.trace_dir)
 
         self.use_query_rewrite = use_query_rewrite
         self.use_query_decompose = use_query_decompose
@@ -53,6 +60,31 @@ class AgenticRAG:
             max_iterations=max_iterations,
         )
 
+    def _save_trace(self, user_input: str, response: Dict[str, Any]):
+        """
+        持久化保存推理轨迹。
+        """
+        if not self.trace_dir:
+            return
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        trace_id = f"trace_{timestamp}"
+        file_path = os.path.join(self.trace_dir, f"{trace_id}.json")
+
+        trace_data = {
+            "trace_id": trace_id,
+            "timestamp": datetime.now().isoformat(),
+            "user_input": user_input,
+            "answer": response.get("answer"),
+            "trace": response.get("trace")
+        }
+
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(trace_data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Failed to save trace: {e}")
+
     def query(self, user_input: str):
         """
         处理用户查询。
@@ -63,14 +95,35 @@ class AgenticRAG:
         if self.use_query_rewrite:
             processed_input = self.rewriter.rewrite(user_input)
 
-        # 可选：查询拆分 (目前简单处理，如果是拆分，可以考虑并行或顺序处理，
-        # 但 ReActAgent 本身就有多步推理能力，所以这里更多是作为辅助信息提供)
+        # 可选：查询拆分
         if self.use_query_decompose:
             sub_queries = self.decomposer.decompose(user_input)
             if len(sub_queries) > 1:
                 processed_input = f"原始问题: {user_input}\n请参考以下分解后的子问题进行思考和解决：\n" + "\n".join([f"- {q}" for q in sub_queries])
 
-        return self.agent.query(processed_input)
+        result = self.agent.query(processed_input)
+        self._save_trace(user_input, result)
+        return result
+
+    async def aquery(self, user_input: str):
+        """
+        处理用户查询 (异步)。
+        """
+        processed_input = user_input
+
+        # 可选：查询改写 (目前 rewriter 只有同步版本)
+        if self.use_query_rewrite:
+            processed_input = self.rewriter.rewrite(user_input)
+
+        # 可选：查询拆分 (目前 decomposer 只有同步版本)
+        if self.use_query_decompose:
+            sub_queries = self.decomposer.decompose(user_input)
+            if len(sub_queries) > 1:
+                processed_input = f"原始问题: {user_input}\n请参考以下分解后的子问题进行思考和解决：\n" + "\n".join([f"- {q}" for q in sub_queries])
+
+        result = await self.agent.aquery(processed_input)
+        self._save_trace(user_input, result)
+        return result
 
     def save_index(self, path: Optional[str] = None):
         """

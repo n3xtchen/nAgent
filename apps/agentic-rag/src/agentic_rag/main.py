@@ -17,6 +17,7 @@ def main():
     parser.add_argument("--add-docs", type=str, help="Path to a JSON file containing documents to add")
     parser.add_argument("--rewrite", action="store_true", help="Enable query rewriting")
     parser.add_argument("--decompose", action="store_true", help="Enable query decomposition")
+    parser.add_argument("--trace-dir", type=str, help="Directory to save reasoning traces")
 
     args = parser.parse_args()
 
@@ -36,7 +37,8 @@ def main():
         max_iterations=args.max_iterations,
         index_path=args.index_path,
         use_query_rewrite=args.rewrite,
-        use_query_decompose=args.decompose
+        use_query_decompose=args.decompose,
+        trace_dir=args.trace_dir
     )
 
     # 如果指定了要添加的文档

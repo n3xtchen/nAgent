@@ -278,6 +278,16 @@ async def answer_relevance_metric(user_input: str, prediction: str, client, mode
         return MetricResult(value=0.0, reason=str(e))
 
 
+@numeric_metric(name="reasoning_steps", allowed_values=(1.0, 20.0))
+async def reasoning_steps_metric(trace: t.Optional[t.List[t.Dict[str, t.Any]]]) -> MetricResult:
+    """计算推理步骤数量。"""
+    if not trace:
+        return MetricResult(value=1.0, reason="无 trace 信息，默认为 1 步")
+
+    steps = len(trace)
+    return MetricResult(value=float(steps), reason=f"共执行了 {steps} 个推理步骤")
+
+
 @experiment()
 async def run_experiment(row, rag_client, eval_client, eval_model="gemini-2.0-flash"):
     """
@@ -288,24 +298,42 @@ async def run_experiment(row, rag_client, eval_client, eval_model="gemini-2.0-fl
 
     response = await rag_client.aquery(user_input)
     prediction = response["answer"]
+    trace = response.get("trace", [])
+
+    # 提取检索到的文档作为上下文
     retrieved_docs = response.get("retrieved_docs", [])
-    context = "\n\n".join([doc["content"] for doc in retrieved_docs])
+    if not retrieved_docs and trace:
+        # 尝试从 trace 中提取 RetrieverTool 的输出
+        contexts = []
+        for step in trace:
+            action = step.get("action")
+            if action and isinstance(action, (list, tuple)) and action[0] == "retrieve":
+                observation = step.get("observation")
+                if observation:
+                    contexts.append(observation)
+        context = "\n\n".join(contexts)
+    else:
+        context = "\n\n".join([doc["content"] for doc in retrieved_docs])
 
     # Calculate metrics
     c_res = await correctness_metric.ascore(user_input=user_input, reference=reference, prediction=prediction, client=eval_client, model_name=eval_model)
     f_res = await faithfulness_metric.ascore(context=context, prediction=prediction, client=eval_client, model_name=eval_model)
     r_res = await answer_relevance_metric.ascore(user_input=user_input, prediction=prediction, client=eval_client, model_name=eval_model)
+    s_res = await reasoning_steps_metric.ascore(trace=trace)
 
     return {
         "user_input": user_input,
         "reference": reference,
         "prediction": prediction,
+        "trace": trace, # 保存 trace 到结果中
         "correctness": c_res.value,
         "correctness_reason": c_res.reason,
         "faithfulness": f_res.value,
         "faithfulness_reason": f_res.reason,
         "answer_relevance": r_res.value,
-        "answer_relevance_reason": r_res.reason
+        "answer_relevance_reason": r_res.reason,
+        "reasoning_steps": s_res.value,
+        "reasoning_steps_reason": s_res.reason
     }
 
 

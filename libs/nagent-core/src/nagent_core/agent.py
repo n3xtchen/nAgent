@@ -105,6 +105,7 @@ class ReActAgent:
     def query(self, user_input: str):
         prompt = self.system_prompt.format(user_input=user_input)
         full_history = prompt
+        trace = []
 
         for i in range(self.max_iterations):
             logger.info(f"Iteration {i+1}/{self.max_iterations}")
@@ -118,10 +119,21 @@ class ReActAgent:
             logger.debug(f"LLM Output:\n{generated_text}")
             full_history += generated_text
 
+            # 提取 Thought
+            thought_match = re.search(r"Thought:\s*(.*?)(?=\n(Action|Final Answer)|$)", generated_text, re.DOTALL)
+            thought = thought_match.group(1).strip() if thought_match else ""
+
             # 检查是否有最终答案
             if "Final Answer:" in generated_text:
                 answer = generated_text.split("Final Answer:")[-1].strip()
-                return {"answer": answer}
+                trace.append({
+                    "step": i + 1,
+                    "thought": thought,
+                    "action": None,
+                    "observation": None,
+                    "final_answer": answer
+                })
+                return {"answer": answer, "trace": trace}
 
             # 解析动作
             action_info = self._parse_action(generated_text)
@@ -137,14 +149,113 @@ class ReActAgent:
                 else:
                     observation = f"Unknown tool: {tool_name}"
 
+                trace.append({
+                    "step": i + 1,
+                    "thought": thought,
+                    "action": (tool_name, tool_args),
+                    "observation": str(observation)
+                })
+
                 observation_str = f"\nObservation: {observation}\n"
                 logger.debug(f"Tool Output: {observation_str}")
                 full_history += observation_str
             else:
                 # 如果既没有 Final Answer 也没有 Action，可能模型迷茫了
                 logger.warning("LLM output did not contain Action or Final Answer")
+
+                trace.append({
+                    "step": i + 1,
+                    "thought": thought,
+                    "action": None,
+                    "observation": "LLM output did not contain Action or Final Answer"
+                })
+
                 if i == self.max_iterations - 1:
-                    return {"answer": "I'm sorry, I couldn't find an answer within the iteration limit."}
+                    return {
+                        "answer": "I'm sorry, I couldn't find an answer within the iteration limit.",
+                        "trace": trace
+                    }
                 full_history += "\nThought: I need to clarify my next step or provide a Final Answer.\n"
 
-        return {"answer": "Reached max iterations without a final answer."}
+        return {
+            "answer": "Reached max iterations without a final answer.",
+            "trace": trace
+        }
+
+    async def aquery(self, user_input: str):
+        prompt = self.system_prompt.format(user_input=user_input)
+        full_history = prompt
+        trace = []
+
+        for i in range(self.max_iterations):
+            logger.info(f"Async Iteration {i+1}/{self.max_iterations}")
+
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=full_history,
+            )
+
+            generated_text = response.text
+            logger.debug(f"LLM Output:\n{generated_text}")
+            full_history += generated_text
+
+            # 提取 Thought
+            thought_match = re.search(r"Thought:\s*(.*?)(?=\n(Action|Final Answer)|$)", generated_text, re.DOTALL)
+            thought = thought_match.group(1).strip() if thought_match else ""
+
+            # 检查是否有最终答案
+            if "Final Answer:" in generated_text:
+                answer = generated_text.split("Final Answer:")[-1].strip()
+                trace.append({
+                    "step": i + 1,
+                    "thought": thought,
+                    "action": None,
+                    "observation": None,
+                    "final_answer": answer
+                })
+                return {"answer": answer, "trace": trace}
+
+            # 解析动作
+            action_info = self._parse_action(generated_text)
+            if action_info:
+                tool_name, tool_args = action_info
+                if tool_name in self.tools:
+                    logger.info(f"Calling tool (async): {tool_name} with args: {tool_args}")
+                    try:
+                        observation = await self.tools[tool_name].arun(tool_args)
+                    except Exception as e:
+                        observation = f"Error executing tool: {e}"
+                else:
+                    observation = f"Unknown tool: {tool_name}"
+
+                trace.append({
+                    "step": i + 1,
+                    "thought": thought,
+                    "action": (tool_name, tool_args),
+                    "observation": str(observation)
+                })
+
+                observation_str = f"\nObservation: {observation}\n"
+                logger.debug(f"Tool Output: {observation_str}")
+                full_history += observation_str
+            else:
+                logger.warning("LLM output did not contain Action or Final Answer")
+
+                trace.append({
+                    "step": i + 1,
+                    "thought": thought,
+                    "action": None,
+                    "observation": "LLM output did not contain Action or Final Answer"
+                })
+
+                if i == self.max_iterations - 1:
+                    return {
+                        "answer": "I'm sorry, I couldn't find an answer within the iteration limit.",
+                        "trace": trace
+                    }
+                full_history += "\nThought: I need to clarify my next step or provide a Final Answer.\n"
+
+        return {
+            "answer": "Reached max iterations without a final answer.",
+            "trace": trace
+        }

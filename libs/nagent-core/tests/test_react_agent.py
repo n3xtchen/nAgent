@@ -28,6 +28,12 @@ def test_react_agent_loop():
     result = agent.query("What is the capital of France?")
 
     assert result["answer"] == "Paris"
+    assert "trace" in result
+    assert len(result["trace"]) == 2
+    assert result["trace"][0]["step"] == 1
+    assert result["trace"][0]["action"][0] == "retrieve"
+    assert result["trace"][1]["step"] == 2
+    assert result["trace"][1]["final_answer"] == "Paris"
     assert mock_llm.models.generate_content.call_count == 2
 
 def test_react_agent_max_iterations():
@@ -42,3 +48,27 @@ def test_react_agent_max_iterations():
 
     result = agent.query("test")
     assert "Reached max iterations" in result["answer"]
+    assert len(result["trace"]) == 2
+
+@pytest.mark.asyncio
+async def test_react_agent_aquery():
+    from unittest.mock import AsyncMock
+    mock_llm = MagicMock()
+    mock_llm.aio = MagicMock()
+
+    response1 = MagicMock()
+    response1.text = "Thought: I need to search.\nAction: retrieve(test)"
+    response2 = MagicMock()
+    response2.text = "Thought: Done.\nFinal Answer: result"
+
+    mock_llm.aio.models.generate_content = AsyncMock(side_effect=[response1, response2])
+
+    tool = MockTool(name="retrieve", description="Search tool")
+    agent = ReActAgent(client=mock_llm, tools=[tool], max_iterations=2)
+
+    result = await agent.aquery("test input")
+
+    assert result["answer"] == "result"
+    assert len(result["trace"]) == 2
+    assert result["trace"][0]["action"][0] == "retrieve"
+    assert mock_llm.aio.models.generate_content.call_count == 2
