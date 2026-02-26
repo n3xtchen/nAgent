@@ -15,6 +15,8 @@ def main():
     parser.add_argument("--max-iterations", type=int, default=5, help="Max reasoning iterations")
     parser.add_argument("--index-path", type=str, help="Path to save or load the index file")
     parser.add_argument("--add-docs", type=str, help="Path to a JSON file containing documents to add")
+    parser.add_argument("--rewrite", action="store_true", help="Enable query rewriting")
+    parser.add_argument("--decompose", action="store_true", help="Enable query decomposition")
 
     args = parser.parse_args()
 
@@ -32,7 +34,9 @@ def main():
         retriever=retriever,
         model_name=args.model,
         max_iterations=args.max_iterations,
-        index_path=args.index_path
+        index_path=args.index_path,
+        use_query_rewrite=args.rewrite,
+        use_query_decompose=args.decompose
     )
 
     # 如果指定了要添加的文档
