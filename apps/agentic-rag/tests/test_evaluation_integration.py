@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, AsyncMock
 from agentic_rag.rag import AgenticRAG
 from nagent_rag.retriever import BaseRetriever
-from nagent.eval import reasoning_steps_metric
+from nagent_rag.eval import reasoning_steps_metric
 
 @pytest.mark.asyncio
 async def test_agentic_rag_aquery_and_metric_integration():

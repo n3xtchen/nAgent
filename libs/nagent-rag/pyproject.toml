@@ -6,6 +6,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "nagent-core",
+    "ragas>=0.4.3",
+    "langchain-core>=0.1.0",
+    "pandas",
 ]
 
 [tool.uv.sources]

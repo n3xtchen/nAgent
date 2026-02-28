@@ -2556,7 +2556,10 @@ name = "nagent-rag"
 version = "0.1.0"
 source = { editable = "libs/nagent-rag" }
 dependencies = [
+    { name = "langchain-core" },
     { name = "nagent-core" },
+    { name = "pandas" },
+    { name = "ragas" },
 ]
 
 [package.optional-dependencies]
@@ -2567,7 +2570,10 @@ jieba = [
 [package.metadata]
 requires-dist = [
     { name = "jieba", marker = "extra == 'jieba'", specifier = ">=0.42.1" },
+    { name = "langchain-core", specifier = ">=0.1.0" },
     { name = "nagent-core", editable = "libs/nagent-core" },
+    { name = "pandas" },
+    { name = "ragas", specifier = ">=0.4.3" },
 ]
 provides-extras = ["jieba"]
 
