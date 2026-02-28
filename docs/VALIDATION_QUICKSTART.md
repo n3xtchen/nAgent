@@ -1,0 +1,318 @@
+# 验证框架快速参考
+
+## 🚀 快速开始
+
+### 1. 运行默认验证程序
+```bash
+# 使用默认配置 (examples/validation/calculator.json)
+uv run python -m agentic_rag.validation_runner
+```
+
+### 2. 使用自定义配置
+```bash
+# 指定配置文件
+uv run python -m agentic_rag.validation_runner \
+  --config examples/validation/my_custom_validation.json
+
+# 指定输出目录
+uv run python -m agentic_rag.validation_runner \
+  --output my_results_directory
+
+# 组合使用
+uv run python -m agentic_rag.validation_runner \
+  --config examples/validation/my_validation.json \
+  --output results
+```
+
+### 3. 验证框架功能
+```bash
+# 运行框架完整性验证
+uv run python verify_validation.py
+```
+
+## 📦 导入框架
+
+### 基本导入
+```python
+from nagent_rag.validation import (
+    ValidationConfig,
+    ValidationRunner,
+    ValidationResult,
+    TestCase,
+    MetricScore,
+    MetricType,
+    ValidationSummary,
+    ValidationReport,
+)
+```
+
+### 加载配置
+```python
+config = ValidationConfig.from_json('examples/validation/calculator.json')
+```
+
+### 创建自定义验证程序
+```python
+from nagent_rag.validation import ValidationRunner, ValidationResult, MetricScore, MetricType
+
+class MyValidator(ValidationRunner):
+    async def run_test_case(self, test_case):
+        # 执行具体验证逻辑
+        answer = "生成答案"
+
+        metrics = {
+            "my_metric": MetricScore(
+                name="My Metric",
+                value=4.5,
+                metric_type=MetricType.CUSTOM,
+            )
+        }
+
+        return ValidationResult(
+            test_case_id=test_case.id,
+            user_input=test_case.user_input,
+            reference=test_case.reference,
+            prediction=answer,
+            metrics=metrics,
+        )
+```
+
+## 📁 项目结构
+
+```
+nAgent/
+├── libs/nagent-rag/src/nagent_rag/
+│   ├── __init__.py                    (添加框架导出)
+│   ├── validation.py                  (核心框架)
+│   ├── eval.py
+│   └── retriever.py
+├── apps/agentic-rag/src/agentic_rag/
+│   ├── validation_runner.py           (改进版 - 使用新框架)
+│   ├── main.py
+│   └── rag.py
+├── examples/
+│   ├── validation/
+│   │   ├── calculator.json            (验证配置)
+│   │   └── calculator_demo.json        (演示数据)
+│   └── ...
+├── docs/
+│   ├── VALIDATION_FRAMEWORK.md        (详细文档)
+│   ├── VALIDATION_QUICKSTART.md       (快速参考)
+│   └── ...
+├── verify_validation.py               (验证脚本)
+└── README.md
+```
+
+## ⚙️ 配置文件格式
+
+### 最小配置
+```json
+{
+  "version": "1.0",
+  "name": "验证程序名称",
+  "description": "描述信息",
+  "test_cases": [
+    {
+      "id": "test_1",
+      "user_input": "问题",
+      "reference": "答案"
+    }
+  ]
+}
+```
+
+### 完整配置
+```json
+{
+  "version": "1.0",
+  "name": "验证程序名称",
+  "description": "描述信息",
+  "model_config": {
+    "model_name": "gemini-2.0-flash",
+    "max_iterations": 5
+  },
+  "test_cases": [
+    {
+      "id": "test_1",
+      "user_input": "问题文本",
+      "reference": "参考答案",
+      "docs_indices": [0, 1],
+      "description": "测试描述"
+    }
+  ],
+  "metadata": {
+    "created": "2026-03-01",
+    "author": "作者名"
+  }
+}
+```
+
+## 📊 输出文件
+
+验证程序运行后生成的文件：
+
+```
+outputs/
+├── logs/
+│   ├── validation.log                 # 验证程序日志
+│   └── validation_framework.log       # 框架日志
+└── results/
+    └── validation/
+        ├── validation_results.json     # JSON 格式结果
+        ├── validation_results.csv      # CSV 格式结果
+        └── traces/                     # 执行 trace 日志
+            ├── query_0.json
+            ├── query_1.json
+            └── ...
+```
+
+### validation_results.json 结构
+```json
+{
+  "config": {
+    "name": "验证程序名称",
+    "description": "描述",
+    "version": "1.0"
+  },
+  "summary": {
+    "total_tests": 5,
+    "passed_tests": 4,
+    "failed_tests": 1,
+    "pass_rate": 80.0,
+    "metrics_average": {
+      "correctness": 4.2,
+      "relevance": 4.0
+    }
+  },
+  "results": [
+    {
+      "test_case_id": "test_1",
+      "prediction": "生成答案",
+      "metrics": {
+        "correctness": {
+          "name": "Correctness",
+          "value": 4.5,
+          "metric_type": "correctness"
+        }
+      }
+    }
+  ]
+}
+```
+
+## 🔍 指标类型
+
+框架支持的指标类型：
+
+| 类型 | 说明 | 范围 |
+|------|------|------|
+| CORRECTNESS | 答案准确性 | 0-5 |
+| RELEVANCE | 答案相关性 | 0-5 |
+| FAITHFULNESS | 答案忠实性 | 0-5 |
+| REASONING_STEPS | 推理步数 | >= 0 |
+| CUSTOM | 自定义指标 | 自定义 |
+
+## 🛠️ 常见任务
+
+### 创建新的验证场景
+
+1. **创建配置文件** (examples/validation/my_task.json)
+```json
+{
+  "version": "1.0",
+  "name": "My Task Validation",
+  "description": "Validate my task",
+  "test_cases": [...]
+}
+```
+
+2. **创建验证程序** (在你的项目中)
+```python
+from nagent_rag.validation import ValidationRunner
+
+class MyTaskValidator(ValidationRunner):
+    async def run_test_case(self, test_case):
+        # 实现验证逻辑
+        pass
+
+async def main():
+    config = ValidationConfig.from_json('examples/validation/my_task.json')
+    runner = MyTaskValidator(config)
+    summary = await runner.run()
+    runner.save_results_json()
+```
+
+### 保存和共享配置
+
+```python
+# 保存配置
+config.to_json('examples/validation/my_validation.json')
+
+# 加载共享的配置
+config = ValidationConfig.from_json('examples/validation/my_validation.json')
+```
+
+### 集成自定义指标
+
+```python
+# 添加自定义指标
+metrics = {
+    "custom_score": MetricScore(
+        name="Custom Score",
+        value=3.8,
+        metric_type=MetricType.CUSTOM,
+        reason="这是我的自定义指标"
+    )
+}
+```
+
+### 查看日志
+
+```bash
+# 查看所有日志
+tail -f outputs/logs/*.log
+
+# 查看验证程序日志
+tail -f outputs/logs/validation.log
+
+# 搜索日志
+grep "ERROR" outputs/logs/*.log
+grep "✓" outputs/logs/*.log
+```
+
+### 清理输出
+
+```bash
+# 清理日志
+rm outputs/logs/*.log
+
+# 清理结果
+rm -rf outputs/results/*
+
+# 清理所有输出
+rm -rf outputs/*
+```
+
+## 📚 详细文档
+
+- **VALIDATION_FRAMEWORK.md** - 完整的框架文档
+- **libs/nagent-rag/src/nagent_rag/validation.py** - 源代码和文档字符串
+
+## ❓ FAQ
+
+**Q: 如何修改测试用例？**
+A: 编辑 examples/validation/calculator.json，修改后直接运行验证程序
+
+**Q: 如何添加新的验证场景？**
+A: 创建新的配置文件和继承 ValidationRunner 的验证程序
+
+**Q: 结果如何导出？**
+A: 自动生成 JSON 和 CSV 格式，支持进一步分析
+
+**Q: 如何支持自定义指标？**
+A: 在 ValidationResult 中添加 MetricScore 对象即可
+
+---
+
+**最后更新**: 2026-03-01
+**框架版本**: 1.0

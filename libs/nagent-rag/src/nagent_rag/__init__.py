@@ -10,6 +10,16 @@ from .eval import (
     generate_testset,
     get_testset_generator,
 )
+from .validation import (
+    ValidationConfig,
+    ValidationRunner,
+    ValidationReport,
+    ValidationResult,
+    TestCase,
+    MetricScore,
+    ValidationSummary,
+    MetricType,
+)
 
 __all__ = [
     "BaseRetriever",
@@ -23,4 +33,12 @@ __all__ = [
     "run_evaluation",
     "generate_testset",
     "get_testset_generator",
+    "ValidationConfig",
+    "ValidationRunner",
+    "ValidationReport",
+    "ValidationResult",
+    "TestCase",
+    "MetricScore",
+    "ValidationSummary",
+    "MetricType",
 ]

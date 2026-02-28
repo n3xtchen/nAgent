@@ -1,0 +1,333 @@
+#!/usr/bin/env python3
+"""
+通用 Agentic RAG 验证工具
+
+该脚本支持通过配置文件驱动的验证工作流，不仅限于 calculator 验证，可扩展支持多种验证场景：
+- 默认使用 examples/validation/calculator.json
+- 可通过 --config 参数指定自定义配置文件
+
+执行方式：
+  uv run python -m agentic_rag.validation_runner
+  uv run python -m agentic_rag.validation_runner --config examples/validation/calculator.json
+  uv run python apps/agentic-rag/src/agentic_rag/validation_runner.py
+"""
+import os
+import argparse
+import asyncio
+import logging
+from pathlib import Path
+from dotenv import load_dotenv
+from google import genai
+
+# 配置日志 - 输出到 logs 目录
+_log_dir = Path("logs")
+_log_dir.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(_log_dir / "validation.log"),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
+# 导入项目模块
+from agentic_rag.rag import AgenticRAG
+from nagent_rag.retriever import SimpleKeywordRetriever
+from nagent_rag.validation import ValidationConfig, ValidationRunner, MetricScore, MetricType, ValidationResult
+from nagent_rag.eval import (
+    correctness_metric,
+    faithfulness_metric,
+    answer_relevance_metric,
+    reasoning_steps_metric,
+)
+
+
+# 加载环境变量
+load_dotenv()
+
+
+class AgenticRAGValidationRunner(ValidationRunner):
+    """通用 Agentic RAG 验证程序运行器"""
+
+    def __init__(
+        self,
+        config: ValidationConfig,
+        client,
+        all_docs,
+        output_dir=None,
+    ):
+        """初始化 Agentic RAG 验证运行器
+
+        Args:
+            config: 验证配置
+            client: Gemini 客户端
+            all_docs: 所有文档
+            output_dir: 输出目录
+        """
+        super().__init__(config, output_dir)
+        self.client = client
+        self.all_docs = all_docs
+        self.rag = None
+
+    async def _init_rag(self):
+        """初始化 Agentic RAG"""
+        if self.rag:
+            return
+
+        # 创建检索器
+        print("🔍 正在初始化检索器...")
+        retriever = SimpleKeywordRetriever()
+        doc_contents = [doc["content"] for doc in self.all_docs]
+        retriever.fit(doc_contents)
+
+        # 初始化 Agentic RAG
+        trace_dir = self.output_dir / "traces"
+        trace_dir.mkdir(parents=True, exist_ok=True)
+
+        print("🤖 正在初始化 Agentic RAG...")
+        self.rag = AgenticRAG(
+            client=self.client,
+            retriever=retriever,
+            model_name=self.config.model_config.get("model_name", "gemini-2.0-flash"),
+            max_iterations=self.config.model_config.get("max_iterations", 5),
+            trace_dir=str(trace_dir),
+        )
+
+    async def run_test_case(self, test_case):
+        """执行单个测试用例"""
+        if not self.rag:
+            await self._init_rag()
+
+        try:
+            # 执行查询
+            print("⏳ 正在执行查询...")
+            result = self.rag.query(test_case.user_input)
+            answer = result["answer"]
+            trace = result.get("trace", [])
+
+            print(f"✓ 生成的答案: {answer[:150]}{'...' if len(answer) > 150 else ''}")
+            print(f"✓ 推理步数: {len(trace)}")
+
+            # 计算评估指标
+            print("\n📊 正在计算评估指标...")
+            metrics = {}
+
+            # 1. 准确性
+            print("  • 准确性 (Correctness)...", end=" ", flush=True)
+            c_res = await correctness_metric.ascore(
+                user_input=test_case.user_input,
+                reference=test_case.reference,
+                prediction=answer,
+                client=self.client,
+                model_name=self.config.model_config.get("model_name", "gemini-2.0-flash")
+            )
+            print(f"✓ {c_res.value:.1f}/5.0")
+            metrics["correctness"] = MetricScore(
+                name="Correctness",
+                value=c_res.value,
+                metric_type=MetricType.CORRECTNESS,
+                reason=getattr(c_res, "reason", None),
+            )
+
+            # 2. 相关性
+            print("  • 相关性 (Answer Relevance)...", end=" ", flush=True)
+            r_res = await answer_relevance_metric.ascore(
+                user_input=test_case.user_input,
+                prediction=answer,
+                client=self.client,
+                model_name=self.config.model_config.get("model_name", "gemini-2.0-flash")
+            )
+            print(f"✓ {r_res.value:.1f}/5.0")
+            metrics["answer_relevance"] = MetricScore(
+                name="Answer Relevance",
+                value=r_res.value,
+                metric_type=MetricType.RELEVANCE,
+                reason=getattr(r_res, "reason", None),
+            )
+
+            # 3. 推理步数
+            s_res = await reasoning_steps_metric.ascore(trace=trace)
+            print(f"  • 推理步数 (Reasoning Steps): {s_res.value:.0f}")
+            metrics["reasoning_steps"] = MetricScore(
+                name="Reasoning Steps",
+                value=s_res.value,
+                metric_type=MetricType.REASONING_STEPS,
+            )
+
+            # 4. 忠实性（需要上下文）
+            retrieved_docs = ""
+            for idx in test_case.docs_indices:
+                if idx < len(self.all_docs):
+                    retrieved_docs += self.all_docs[idx]["content"] + "\n\n"
+
+            print("  • 忠实性 (Faithfulness)...", end=" ", flush=True)
+            if retrieved_docs:
+                f_res = await faithfulness_metric.ascore(
+                    context=retrieved_docs,
+                    prediction=answer,
+                    client=self.client,
+                    model_name=self.config.model_config.get("model_name", "gemini-2.0-flash")
+                )
+                print(f"✓ {f_res.value:.1f}/5.0")
+                metrics["faithfulness"] = MetricScore(
+                    name="Faithfulness",
+                    value=f_res.value,
+                    metric_type=MetricType.FAITHFULNESS,
+                    reason=getattr(f_res, "reason", None),
+                )
+            else:
+                print("⊘ (无上下文)")
+
+            # 创建验证结果
+            validation_result = ValidationResult(
+                test_case_id=test_case.id,
+                user_input=test_case.user_input,
+                reference=test_case.reference,
+                prediction=answer,
+                metrics=metrics,
+                trace_length=len(trace),
+                error=None,
+                metadata={"doc_indices": test_case.docs_indices},
+            )
+
+            return validation_result
+
+        except Exception as e:
+            print(f"\n❌ 测试 {test_case.id} 执行失败: {e}")
+            import traceback
+            traceback.print_exc()
+
+            return ValidationResult(
+                test_case_id=test_case.id,
+                user_input=test_case.user_input,
+                reference=test_case.reference,
+                prediction="",
+                error=str(e),
+            )
+
+
+async def main():
+    """主程序"""
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(
+        description="通用 Agentic RAG 验证工具 - 支持配置文件驱动的验证工作流"
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="examples/validation/calculator.json",
+        help="验证配置文件路径（默认: examples/validation/calculator.json）",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="outputs/results/validation",
+        help="输出目录（默认: outputs/results/validation）",
+    )
+    args = parser.parse_args()
+
+    # 确定配置文件路径
+    config_path = Path(args.config)
+    if not config_path.is_absolute():
+        # 相对于项目根目录
+        config_path = Path(__file__).parent.parent.parent.parent / args.config
+
+    # 验证环境变量
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        print("❌ 错误：未设置 GEMINI_API_KEY 环境变量")
+        return
+
+    print("=" * 80)
+    print("通用 Agentic RAG 验证 - 配置文件驱动")
+    print("=" * 80)
+
+    # 加载配置
+    try:
+        config = ValidationConfig.from_json(config_path)
+    except FileNotFoundError as e:
+        print(f"❌ 错误: {e}")
+        return
+
+    # 加载文档
+    print("📂 加载测试文档...")
+    demo_path = config_path.parent / "calculator_demo.json"
+    if not demo_path.exists():
+        print(f"❌ 错误：文档文件不存在 {demo_path}")
+        return
+
+    import json
+    with open(demo_path, 'r', encoding='utf-8') as f:
+        all_docs = json.load(f)
+    print(f"✓ 已加载 {len(all_docs)} 个文档\n")
+
+    # 初始化 Gemini 客户端
+    print("🔑 正在初始化 Gemini 客户端...")
+    client = genai.Client(api_key=api_key)
+
+    # 创建验证运行器
+    output_dir = Path(args.output)
+    runner = AgenticRAGValidationRunner(
+        config=config,
+        client=client,
+        all_docs=all_docs,
+        output_dir=output_dir,
+    )
+
+    # 执行验证
+    summary = await runner.run()
+
+    # 打印总结
+    runner.print_summary(summary)
+
+    # 保存结果
+    print("\n💾 正在保存结果...")
+    runner.save_results_json()
+    runner.save_results_csv()
+
+    # 性能评级
+    print("\n🎯 质量评级:")
+    avg_correctness = summary.metrics_average.get("correctness", 0)
+    if avg_correctness >= 4.0:
+        print(f"  准确性: ✓ 优秀 (≥4.0) - {avg_correctness:.2f}")
+    elif avg_correctness >= 3.0:
+        print(f"  准确性: △ 良好 (3.0-3.9) - {avg_correctness:.2f}")
+    else:
+        print(f"  准确性: ✗ 需改进 (<3.0) - {avg_correctness:.2f}")
+
+    avg_relevance = summary.metrics_average.get("answer_relevance", 0)
+    if avg_relevance >= 4.0:
+        print(f"  相关性: ✓ 优秀 (≥4.0) - {avg_relevance:.2f}")
+    elif avg_relevance >= 3.0:
+        print(f"  相关性: △ 良好 (3.0-3.9) - {avg_relevance:.2f}")
+    else:
+        print(f"  相关性: ✗ 需改进 (<3.0) - {avg_relevance:.2f}")
+
+    avg_faithfulness = summary.metrics_average.get("faithfulness", 0)
+    if avg_faithfulness > 0:
+        if avg_faithfulness >= 4.0:
+            print(f"  忠实性: ✓ 优秀 (≥4.0) - {avg_faithfulness:.2f}")
+        elif avg_faithfulness >= 3.0:
+            print(f"  忠实性: △ 良好 (3.0-3.9) - {avg_faithfulness:.2f}")
+        else:
+            print(f"  忠实性: ✗ 需改进 (<3.0) - {avg_faithfulness:.2f}")
+
+    avg_steps = summary.metrics_average.get("reasoning_steps", 0)
+    if avg_steps <= 3:
+        print(f"  效率: ✓ 优秀 (≤3步) - {avg_steps:.2f}")
+    elif avg_steps <= 5:
+        print(f"  效率: △ 良好 (4-5步) - {avg_steps:.2f}")
+    else:
+        print(f"  效率: ✗ 需改进 (>5步) - {avg_steps:.2f}")
+
+    print(f"\n📁 结果保存位置: {output_dir}")
+    print(f"📁 Trace 日志位置: {output_dir}/traces")
+    print("\n✓ 验证完成！")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
