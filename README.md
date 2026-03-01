@@ -16,6 +16,11 @@
 - **`agentic-rag`**: 基于智能体循环的 RAG 应用，支持自主检索决策。
 - **`nagent`**: (旧版/其他) 代理应用。
 
+### 文档与规范 (`docs/`)
+
+- **`docs/`**: 存放项目设计文档、API 参考和迁移指南。
+- **`devlogs/`**: 存放每日开发日志和复盘记录（不进入版本控制）。
+
 ## 快速开始
 
 1. 安装依赖:
@@ -56,10 +61,13 @@ uv run python verify_validation.py
 
 - [验证框架详细文档](docs/VALIDATION_FRAMEWORK.md)
 - [验证框架快速参考](docs/VALIDATION_QUICKSTART.md)
+- [项目重组总结与迁移指南](docs/REORGANIZATION_SUMMARY.md)
 - [验证框架源代码](libs/nagent-rag/src/nagent_rag/validation.py)
 
-## 文档
+## 文档目录
 
 - [Agentic RAG 设计文档 (PRD)](docs/PRD_Agentic_RAG.md)
-- [验证框架文档](docs/VALIDATION_FRAMEWORK.md)
+- [验证框架详细文档](docs/VALIDATION_FRAMEWORK.md)
 - [验证框架快速参考](docs/VALIDATION_QUICKSTART.md)
+- [项目重组总结](docs/REORGANIZATION_SUMMARY.md)
+- [项目迁移指南](docs/MIGRATION_GUIDE.md)

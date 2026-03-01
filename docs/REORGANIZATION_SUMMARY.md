@@ -62,6 +62,9 @@ nAgent/
 │   ├── VALIDATION_QUICKSTART.md                      # ✨ 快速参考文档
 │   └── ...
 │
+├── devlogs/                                         # ✨ 开发日志（不受版本控制）
+│   └── 2026-03-01/                                  # ✨ 按日期归档的过程记录
+│
 ├── libs/nagent-rag/src/nagent_rag/
 │   ├── validation.py                                 # 核心验证框架（无改动）
 │   └── ...
