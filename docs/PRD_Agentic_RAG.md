@@ -177,11 +177,11 @@ Agentic RAG 系统采用 4 个核心评估指标来全面衡量 RAG 系统的质
 
 #### 7.2.1 框架选择与架构
 
-Agentic RAG 采用 **RAGAS + 自定义 LLM Judge** 的评估架构：
+Agentic RAG 采用 **RAGAS + 自定义 LLM Judge** 的评估架构。为了提高通用性和复用性，评估框架已下沉至 `libs/nagent-rag`。
 
 - **RAGAS (RAG Assessment)**：行业标准的 RAG 评估框架，提供指标定义和聚合逻辑
 - **LLM Judge**：使用 Google Gemini 作为"裁判"，通过 LLM 的推理能力评估答案质量
-- **中文支持**：所有评估 Prompt 均设计为中文优先，同时支持英文回答选项
+- **通用化支持**：评估逻辑与业务解耦，支持并发执行和异步数据持久化
 
 **库位置**：`libs/nagent-rag/src/nagent_rag/eval.py`
 
@@ -420,89 +420,16 @@ async def batch_evaluate_rag(test_cases_file: str):
 
     # 运行评测
     results = []
-    metrics_summary = {
-        "correctness": [],
-        "faithfulness": [],
-        "answer_relevance": [],
-        "reasoning_steps": []
-    }
 
     for test_case in test_cases["test_cases"]:
         print(f"评测: {test_case['id']}")
 
-        # 执行 RAG 查询
+        # 执行 RAG 查询 (使用 aquery 异步接口)
         rag_result = await rag.aquery(test_case["user_input"])
         answer = rag_result["answer"]
         trace = rag_result.get("trace", [])
 
-        # 计算 4 个指标
-        c_result = await correctness_metric.ascore(
-            user_input=test_case["user_input"],
-            reference=test_case["reference"],
-            prediction=answer,
-            client=client
-        )
-        metrics_summary["correctness"].append(c_result.value)
-
-        f_result = await faithfulness_metric.ascore(
-            context=test_case.get("context", ""),
-            prediction=answer,
-            client=client
-        )
-        metrics_summary["faithfulness"].append(f_result.value)
-
-        r_result = await answer_relevance_metric.ascore(
-            user_input=test_case["user_input"],
-            prediction=answer,
-            client=client
-        )
-        metrics_summary["answer_relevance"].append(r_result.value)
-
-        s_result = await reasoning_steps_metric.ascore(trace=trace)
-        metrics_summary["reasoning_steps"].append(s_result.value)
-
-        results.append({
-            "test_id": test_case["id"],
-            "user_input": test_case["user_input"],
-            "prediction": answer,
-            "correctness": c_result.value,
-            "faithfulness": f_result.value,
-            "answer_relevance": r_result.value,
-            "reasoning_steps": s_result.value,
-        })
-
-    # 生成评估报告
-    print("\n" + "=" * 60)
-    print("评估报告")
-    print("=" * 60)
-
-    avg_correctness = sum(metrics_summary["correctness"]) / len(metrics_summary["correctness"])
-    avg_faithfulness = sum(metrics_summary["faithfulness"]) / len(metrics_summary["faithfulness"])
-    avg_relevance = sum(metrics_summary["answer_relevance"]) / len(metrics_summary["answer_relevance"])
-    avg_steps = sum(metrics_summary["reasoning_steps"]) / len(metrics_summary["reasoning_steps"])
-
-    print(f"平均准确性:   {avg_correctness:.2f}/5.0")
-    print(f"平均忠实性:   {avg_faithfulness:.2f}/5.0")
-    print(f"平均相关性:   {avg_relevance:.2f}/5.0")
-    print(f"平均推理步数: {avg_steps:.2f}")
-
-    # 保存详细结果
-    with open("rag_evaluation_report.json", 'w', encoding='utf-8') as f:
-        json.dump({
-            "summary": {
-                "total_tests": len(results),
-                "avg_correctness": avg_correctness,
-                "avg_faithfulness": avg_faithfulness,
-                "avg_answer_relevance": avg_relevance,
-                "avg_reasoning_steps": avg_steps,
-            },
-            "details": results
-        }, f, ensure_ascii=False, indent=2)
-
-    print("\n✓ 报告已保存到 rag_evaluation_report.json")
-
-# 执行批量评测
-# asyncio.run(batch_evaluate_rag("test_cases.json"))
+        # 计算指标...
 ```
 
 ### 7.4 评估指标关键性说明

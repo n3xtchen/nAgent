@@ -1,0 +1,37 @@
+[
+  {
+    "id": "calc_budget_1",
+    "user_input": "Project Pig 的研发费用和市场推广费用总共是多少?",
+    "reference": "研发费用 500,000 元，市场推广 200,000 元，总共是 700,000 元。",
+    "docs_indices": [0],
+    "description": "测试：预算加法计算"
+  },
+  {
+    "id": "calc_budget_2",
+    "user_input": "Project Pig 的预算中，运营维护费用占总预算的百分比是多少?",
+    "reference": "总预算是 500,000 + 200,000 + 150,000 + 50,000 = 900,000 元。运营维护 150,000 元占比是 150,000/900,000 = 16.67%。",
+    "docs_indices": [0],
+    "description": "测试：百分比计算"
+  },
+  {
+    "id": "calc_pricing",
+    "user_input": "如果购买 150 个 nAgent 企业版席位，一个月需要支付多少美元?",
+    "reference": "基础价格：150 * 29 = 4,350 美元。由于超过 100 个席位，享受 8.5 折优惠：4,350 * 0.85 = 3,697.5 美元。",
+    "docs_indices": [1],
+    "description": "测试：打折计算"
+  },
+  {
+    "id": "perf_analysis",
+    "user_input": "在 Agentic RAG 系统的查询过程中，知识检索耗时最长吗?",
+    "reference": "根据性能测试，单次查询耗时：意图识别 0.2 秒，知识检索 0.7 秒，答案生成 0.3 秒。知识检索耗时 0.7 秒确实最长。",
+    "docs_indices": [2],
+    "description": "测试：性能分析"
+  },
+  {
+    "id": "calc_multi_doc",
+    "user_input": "Project Pig 的行政支出和 nAgent 订阅一个月的基础费用（单用户）是否相同?",
+    "reference": "Project Pig 行政支出是 50,000 元，nAgent 企业版订阅费用是 29 美元/月/用户，不相同（单位和数值都不同）。",
+    "docs_indices": [0, 1],
+    "description": "测试：多文档对比分析"
+  }
+]

@@ -12,9 +12,17 @@
 - 支持从 JSON 文件加载配置
 - 包含：名称、描述、版本、模型配置、测试用例列表
 - 支持保存配置为 JSON 文件（便于版本控制和共享）
+- **支持解耦加载**：可以通过 `dataset_path` 参数独立加载测试用例，覆盖配置文件中的默认值。
 
 ```python
+# 从配置文件加载
 config = ValidationConfig.from_json('examples/validation/calculator.json')
+
+# 从配置文件加载，但使用独立的测试集
+config = ValidationConfig.from_json(
+    'examples/validation/calculator.json',
+    dataset_path='examples/validation/custom_dataset.json'
+)
 ```
 
 #### 2. **TestCase** - 测试用例数据模型
@@ -25,13 +33,17 @@ config = ValidationConfig.from_json('examples/validation/calculator.json')
 #### 3. **ValidationRunner** - 通用验证程序基类
 - 可扩展的抽象基类，子类需实现 `run_test_case()` 方法
 - 完整的验证流程管理：初始化、循环、汇总、报告生成
+- **并发执行支持**：`run()` 方法支持 `max_concurrency` 参数，通过 `asyncio.Semaphore` 实现并发控制。
 - 支持异步执行，高效处理 I/O 密集操作
 
 ```python
 class MyValidator(ValidationRunner):
     async def run_test_case(self, test_case):
-        # 实现具体验证逻辑
+        # 实现具体验证逻辑 (例如调用 aquery)
         return ValidationResult(...)
+
+# 运行验证，设置最大并发数为 5
+summary = await runner.run(max_concurrency=5)
 ```
 
 #### 4. **ValidationResult** - 验证结果数据模型

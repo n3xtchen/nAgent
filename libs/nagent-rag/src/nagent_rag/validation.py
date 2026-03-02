@@ -122,8 +122,13 @@ class ValidationConfig:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_json(cls, json_path: str | Path) -> "ValidationConfig":
-        """从 JSON 文件加载配置"""
+    def from_json(cls, json_path: str | Path, dataset_path: Optional[str | Path] = None) -> "ValidationConfig":
+        """从 JSON 文件加载配置
+
+        Args:
+            json_path: 配置文件路径
+            dataset_path: 可选的数据集文件路径（若提供则覆盖配置文件中的测试用例）
+        """
         path = Path(json_path)
         logger.info(f"📂 加载验证配置: {path}")
 
@@ -133,9 +138,24 @@ class ValidationConfig:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
+        # 优先从独立数据集加载测试用例
+        test_cases_data = data.get("test_cases", [])
+        if dataset_path:
+            dataset_path = Path(dataset_path)
+            logger.info(f"📂 从独立数据集加载测试用例: {dataset_path}")
+            if not dataset_path.exists():
+                raise FileNotFoundError(f"数据集文件不存在: {dataset_path}")
+            with open(dataset_path, "r", encoding="utf-8") as f:
+                ds_data = json.load(f)
+                # 如果数据集是列表，则直接作为测试用例；如果是字典，则尝试获取 test_cases 字段
+                if isinstance(ds_data, list):
+                    test_cases_data = ds_data
+                else:
+                    test_cases_data = ds_data.get("test_cases", ds_data)
+
         # 解析测试用例
         test_cases = [
-            TestCase.from_dict(tc) for tc in data.get("test_cases", [])
+            TestCase.from_dict(tc) for tc in test_cases_data
         ]
 
         config = cls(
@@ -236,13 +256,17 @@ class ValidationRunner(ABC):
         """
         pass
 
-    async def run(self) -> ValidationSummary:
+    async def run(self, max_concurrency: int = 1) -> ValidationSummary:
         """执行完整的验证流程
+
+        Args:
+            max_concurrency: 最大并发数，默认为 1（串行）
 
         Returns:
             验证总结
         """
         import time
+        import asyncio
 
         self.start_time = time.time()
         self.results = []
@@ -250,42 +274,73 @@ class ValidationRunner(ABC):
         logger.info("=" * 80)
         logger.info(f"🚀 开始验证: {self.config.name}")
         logger.info(f"📝 描述: {self.config.description}")
+        logger.info(f"并发限制: {max_concurrency}")
         logger.info("=" * 80)
 
-        for i, test_case in enumerate(self.config.test_cases, 1):
-            logger.info(f"\n[测试 {i}/{len(self.config.test_cases)}] {test_case.id}")
-            logger.info(f"❓ 问题: {test_case.user_input}")
-            logger.info("-" * 80)
+        if max_concurrency <= 1:
+            # 串行执行
+            for i, test_case in enumerate(self.config.test_cases, 1):
+                logger.info(f"\n[测试 {i}/{len(self.config.test_cases)}] {test_case.id}")
+                logger.info(f"❓ 问题: {test_case.user_input}")
+                logger.info("-" * 80)
 
-            try:
-                result = await self.run_test_case(test_case)
-                self.results.append(result)
+                try:
+                    result = await self.run_test_case(test_case)
+                    self.results.append(result)
 
-                if result.error:
-                    logger.error(f"❌ 测试失败: {result.error}")
-                else:
-                    logger.info("✓ 测试成功")
+                    if result.error:
+                        logger.error(f"❌ 测试失败: {result.error}")
+                    else:
+                        logger.info("✓ 测试成功")
 
-                # 显示指标
-                if result.metrics:
-                    logger.info("\n📊 指标结果:")
-                    for metric_name, score in result.metrics.items():
-                        if score.metric_type == MetricType.REASONING_STEPS:
-                            logger.info(
-                                f"  • {metric_name}: {score.value:.0f}"
-                            )
+                    # 显示指标
+                    if result.metrics:
+                        logger.info("\n📊 指标结果:")
+                        for metric_name, score in result.metrics.items():
+                            if score.metric_type == MetricType.REASONING_STEPS:
+                                logger.info(
+                                    f"  • {metric_name}: {score.value:.0f}"
+                                )
+                            else:
+                                logger.info(
+                                    f"  • {metric_name}: {score.value:.2f}/5.0"
+                                )
+                                if score.reason:
+                                    logger.info(f"    {score.reason}")
+
+                except Exception as e:
+                    logger.error(f"❌ 测试执行异常: {e}")
+                    import traceback
+                    traceback.print_exc()
+        else:
+            # 并发执行
+            semaphore = asyncio.Semaphore(max_concurrency)
+
+            async def _run_with_semaphore(idx, tc):
+                async with semaphore:
+                    logger.info(f"🚀 启动并发测试 [{idx}/{len(self.config.test_cases)}]: {tc.id}")
+                    try:
+                        res = await self.run_test_case(tc)
+                        if res.error:
+                            logger.error(f"❌ 测试 {tc.id} 失败: {res.error}")
                         else:
-                            logger.info(
-                                f"  • {metric_name}: {score.value:.2f}/5.0"
-                            )
-                            if score.reason:
-                                logger.info(f"    {score.reason}")
+                            logger.info(f"✓ 测试 {tc.id} 成功")
+                        return res
+                    except Exception as e:
+                        logger.error(f"❌ 测试 {tc.id} 异常: {e}")
+                        return ValidationResult(
+                            test_case_id=tc.id,
+                            user_input=tc.user_input,
+                            reference=tc.reference,
+                            prediction="",
+                            error=str(e)
+                        )
 
-            except Exception as e:
-                logger.error(f"❌ 测试执行异常: {e}")
-                import traceback
-
-                traceback.print_exc()
+            tasks = [
+                _run_with_semaphore(i, tc)
+                for i, tc in enumerate(self.config.test_cases, 1)
+            ]
+            self.results = await asyncio.gather(*tasks)
 
         self.end_time = time.time()
         summary = self._generate_summary()

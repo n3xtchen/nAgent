@@ -8,20 +8,22 @@
 uv run python -m agentic_rag.validation_runner
 ```
 
-### 2. 使用自定义配置
+### 2. 使用自定义配置与并发控制
 ```bash
-# 指定配置文件
+# 指定配置文件和并发数 (提高执行效率)
 uv run python -m agentic_rag.validation_runner \
-  --config examples/validation/my_custom_validation.json
+  --config examples/validation/my_custom_validation.json \
+  --concurrency 5
+
+# 指定独立的数据集和文档库 (实现数据与配置解耦)
+uv run python -m agentic_rag.validation_runner \
+  --dataset my_dataset.json \
+  --docs my_docs.json \
+  --concurrency 3
 
 # 指定输出目录
 uv run python -m agentic_rag.validation_runner \
   --output my_results_directory
-
-# 组合使用
-uv run python -m agentic_rag.validation_runner \
-  --config examples/validation/my_validation.json \
-  --output results
 ```
 
 ### 3. 验证框架功能
@@ -48,7 +50,14 @@ from nagent_rag.validation import (
 
 ### 加载配置
 ```python
+# 从配置文件加载
 config = ValidationConfig.from_json('examples/validation/calculator.json')
+
+# 从配置文件加载，但使用独立的测试集
+config = ValidationConfig.from_json(
+    'examples/validation/calculator.json',
+    dataset_path='examples/validation/custom_dataset.json'
+)
 ```
 
 ### 创建自定义验证程序
@@ -57,7 +66,7 @@ from nagent_rag.validation import ValidationRunner, ValidationResult, MetricScor
 
 class MyValidator(ValidationRunner):
     async def run_test_case(self, test_case):
-        # 执行具体验证逻辑
+        # 执行具体验证逻辑 (例如调用 aquery)
         answer = "生成答案"
 
         metrics = {
@@ -75,6 +84,9 @@ class MyValidator(ValidationRunner):
             prediction=answer,
             metrics=metrics,
         )
+
+# 运行验证，设置最大并发数为 5
+# summary = await runner.run(max_concurrency=5)
 ```
 
 ## 📁 项目结构
@@ -87,19 +99,20 @@ nAgent/
 │   ├── eval.py
 │   └── retriever.py
 ├── apps/agentic-rag/src/agentic_rag/
-│   ├── validation_runner.py           (改进版 - 使用新框架)
+│   ├── validation_runner.py           (通用验证程序入口)
 │   ├── main.py
 │   └── rag.py
 ├── examples/
 │   ├── validation/
 │   │   ├── calculator.json            (验证配置)
-│   │   └── calculator_demo.json        (演示数据)
+│   │   ├── calculator_dataset.json    (独立数据集示例)
+│   │   └── calculator_demo.json       (演示数据/文档库)
 │   └── ...
 ├── docs/
 │   ├── VALIDATION_FRAMEWORK.md        (详细文档)
 │   ├── VALIDATION_QUICKSTART.md       (快速参考)
 │   └── ...
-├── verify_validation.py               (验证脚本)
+├── verify_validation.py               (框架验证脚本)
 └── README.md
 ```
 
@@ -158,9 +171,9 @@ outputs/
 │   └── validation_framework.log       # 框架日志
 └── results/
     └── validation/
-        ├── validation_results.json     # JSON 格式结果
+        ├── validation_results.json     # JSON 格式结果 (包含指标理由)
         ├── validation_results.csv      # CSV 格式结果
-        └── traces/                     # 执行 trace 日志
+        └── traces/                     # 推理过程 trace 日志 (支持异步持久化)
             ├── query_0.json
             ├── query_1.json
             └── ...
@@ -192,7 +205,8 @@ outputs/
         "correctness": {
           "name": "Correctness",
           "value": 4.5,
-          "metric_type": "correctness"
+          "metric_type": "correctness",
+          "reason": "评分理由文本"
         }
       }
     }
@@ -208,7 +222,7 @@ outputs/
 |------|------|------|
 | CORRECTNESS | 答案准确性 | 0-5 |
 | RELEVANCE | 答案相关性 | 0-5 |
-| FAITHFULNESS | 答案忠实性 | 0-5 |
+| FAITHFULNESS | 答案忠实性 (检测幻觉) | 0-5 |
 | REASONING_STEPS | 推理步数 | >= 0 |
 | CUSTOM | 自定义指标 | 自定义 |
 
@@ -238,7 +252,7 @@ class MyTaskValidator(ValidationRunner):
 async def main():
     config = ValidationConfig.from_json('examples/validation/my_task.json')
     runner = MyTaskValidator(config)
-    summary = await runner.run()
+    summary = await runner.run(max_concurrency=3)
     runner.save_results_json()
 ```
 
@@ -250,20 +264,6 @@ config.to_json('examples/validation/my_validation.json')
 
 # 加载共享的配置
 config = ValidationConfig.from_json('examples/validation/my_validation.json')
-```
-
-### 集成自定义指标
-
-```python
-# 添加自定义指标
-metrics = {
-    "custom_score": MetricScore(
-        name="Custom Score",
-        value=3.8,
-        metric_type=MetricType.CUSTOM,
-        reason="这是我的自定义指标"
-    )
-}
 ```
 
 ### 查看日志
@@ -280,39 +280,18 @@ grep "ERROR" outputs/logs/*.log
 grep "✓" outputs/logs/*.log
 ```
 
-### 清理输出
-
-```bash
-# 清理日志
-rm outputs/logs/*.log
-
-# 清理结果
-rm -rf outputs/results/*
-
-# 清理所有输出
-rm -rf outputs/*
-```
-
-## 📚 详细文档
-
-- **VALIDATION_FRAMEWORK.md** - 完整的框架文档
-- **libs/nagent-rag/src/nagent_rag/validation.py** - 源代码和文档字符串
-
 ## ❓ FAQ
 
 **Q: 如何修改测试用例？**
-A: 编辑 examples/validation/calculator.json，修改后直接运行验证程序
+A: 编辑相应的 JSON 配置文件，或使用 `--dataset` 参数指定独立的数据集文件。
 
-**Q: 如何添加新的验证场景？**
-A: 创建新的配置文件和继承 ValidationRunner 的验证程序
+**Q: 如何提高验证效率？**
+A: 使用 `--concurrency N` 参数（如 `--concurrency 5`）开启并发验证。
 
-**Q: 结果如何导出？**
-A: 自动生成 JSON 和 CSV 格式，支持进一步分析
-
-**Q: 如何支持自定义指标？**
-A: 在 ValidationResult 中添加 MetricScore 对象即可
+**Q: 为什么 traces 目录是空的？**
+A: 确保在初始化 `AgenticRAG` 时指定了 `trace_dir` 参数。
 
 ---
 
-**最后更新**: 2026-03-01
-**框架版本**: 1.0
+**最后更新**: 2026-03-02
+**框架版本**: 1.1 (增强版)

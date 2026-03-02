@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "name": "Calculator 验证配置 (仅配置)",
+  "description": "不包含测试用例的纯配置文件",
+  "model_config": {
+    "model_name": "gemini-2.0-flash",
+    "max_iterations": 5
+  },
+  "metadata": {
+    "created": "2026-03-02",
+    "author": "nAgent Team",
+    "tags": ["calculator", "config"]
+  }
+}
