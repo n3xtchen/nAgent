@@ -166,17 +166,22 @@ def verify_framework():
     # 5. 验证文档文件
     print("\n[5] 验证支持文件...")
     try:
-        demo_path = Path("examples/validation/calculator_demo.json")
-        if not demo_path.exists():
-            print(f"❌ 文档文件不存在: {demo_path}")
+        config_path = Path("examples/validation/calculator.json")
+        if not config_path.exists():
+            print(f"❌ 配置文件不存在: {config_path}")
             return False
 
-        with open(demo_path, "r", encoding="utf-8") as f:
-            docs = json.load(f)
+        with open(config_path, "r", encoding="utf-8") as f:
+            config_data = json.load(f)
 
-        print(f"✓ 文档文件加载成功")
-        print(f"  文档数: {len(docs)}")
-        for i, doc in enumerate(docs, 1):
+        rag_data = config_data.get("rag_data", [])
+        if not rag_data:
+            print(f"❌ 配置文件中缺少 rag_data")
+            return False
+
+        print(f"✓ RAG 数据验证成功")
+        print(f"  文档数: {len(rag_data)}")
+        for i, doc in enumerate(rag_data, 1):
             print(f"  [{i}] {doc['id']}: {doc['content'][:50]}...")
 
     except Exception as e:
@@ -231,9 +236,8 @@ def verify_framework():
     print("             pass")
     print("")
     print("  3. 运行验证程序:")
-    print("     uv run python -m agentic_rag.validation_runner")
     print("     uv run python -m agentic_rag.validation_runner --config examples/validation/calculator.json")
-    print("     uv run python -m agentic_rag.validation_runner --output my_output_dir")
+    print("     uv run python -m agentic_rag.validation_runner --config examples/validation/calculator.json --output my_output_dir")
 
     return True
 

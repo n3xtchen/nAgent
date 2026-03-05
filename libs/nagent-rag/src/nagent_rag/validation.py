@@ -50,7 +50,7 @@ class TestCase:
     id: str
     user_input: str
     reference: str
-    docs_indices: List[int] = field(default_factory=list)
+    docs_indices: List[str | int] = field(default_factory=list)
     description: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -117,6 +117,8 @@ class ValidationConfig:
     name: str
     description: str
     version: str = "1.0"
+    rag_config: Dict[str, Any] = field(default_factory=dict)
+    rag_data: List[Dict[str, Any]] = field(default_factory=list)
     test_cases: List[TestCase] = field(default_factory=list)
     model_config: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -162,12 +164,17 @@ class ValidationConfig:
             name=data.get("name", "验证程序"),
             description=data.get("description", ""),
             version=data.get("version", "1.0"),
+            rag_config=data.get("rag_config", {}),
+            rag_data=data.get("rag_data", []),
             test_cases=test_cases,
             model_config=data.get("model_config", {}),
             metadata=data.get("metadata", {}),
         )
 
         logger.info(f"✓ 已加载 {len(config.test_cases)} 个测试用例")
+        if config.rag_data:
+             logger.info(f"✓ 已加载 {len(config.rag_data)} 条 RAG 数据")
+
         return config
 
     def to_json(self, json_path: str | Path) -> None:
@@ -179,6 +186,8 @@ class ValidationConfig:
             "name": self.name,
             "description": self.description,
             "version": self.version,
+            "rag_config": self.rag_config,
+            "rag_data": self.rag_data,
             "test_cases": [asdict(tc) for tc in self.test_cases],
             "model_config": self.model_config,
             "metadata": self.metadata,

@@ -51,7 +51,8 @@ uv run -m agentic_rag.main "什么是 Agentic RAG？"
 ### 运行验证
 ```bash
 # 1. 使用默认配置运行 (calculator 验证)
-uv run python -m agentic_rag.validation_runner
+uv run python -m agentic_rag.validation_runner \
+    --config examples/validation/calculator.json
 
 # 2. 指定验证场景和并发控制 (提高执行效率)
 uv run python -m agentic_rag.validation_runner \
@@ -60,16 +61,17 @@ uv run python -m agentic_rag.validation_runner \
 
 # 3. 指定独立的数据集和文档库 (实现数据与配置解耦)
 uv run python -m agentic_rag.validation_runner \
-    --dataset examples/validation/calculator_dataset.json \
-    --docs examples/validation/calculator_demo.json \
+    --config examples/validation/calculator.json \
+    --dataset examples/validation/custom_dataset.json \
+    --docs examples/validation/custom_docs.json \
     --output outputs/custom_validation \
     --concurrency 3
 ```
 
 ### CLI 参数说明
-- `--config`: 验证配置文件路径（默认：`examples/validation/calculator.json`）。
+- `--config`: 验证配置文件路径 (**必填**)。
 - `--dataset`: 独立测试集文件路径（JSON 格式）。若提供，将覆盖 config 中的 `test_cases`。
-- `--docs`: 独立文档库文件路径（JSON 格式）。若未提供，默认从 config 同级目录查找。
+- `--docs`: 独立文档库文件路径（JSON 格式）。若提供，将优先使用；否则使用 config 中的 `rag_data`。
 - `--output`: 结果输出目录（默认：`outputs/results/validation`）。
 - `--concurrency`: 并发测试用例数（默认：3）。在 API 配额受限时可设为 `1`。
 

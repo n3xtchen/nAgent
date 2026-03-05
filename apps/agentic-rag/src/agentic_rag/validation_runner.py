@@ -72,6 +72,8 @@ class AgenticRAGValidationRunner(ValidationRunner):
         self.client = client
         self.all_docs = all_docs
         self.rag = None
+        # 预构建 ID 映射以提高检索效率
+        self.doc_map = {str(d.get("id")): d["content"] for d in self.all_docs if isinstance(d, dict) and "id" in d and "content" in d}
 
     async def _init_rag(self):
         """初始化 Agentic RAG"""
@@ -156,9 +158,14 @@ class AgenticRAGValidationRunner(ValidationRunner):
 
             # 4. 忠实性（需要上下文）
             retrieved_docs = ""
+
             for idx in test_case.docs_indices:
-                if idx < len(self.all_docs):
-                    retrieved_docs += self.all_docs[idx]["content"] + "\n\n"
+                if isinstance(idx, int):
+                    if 0 <= idx < len(self.all_docs):
+                        retrieved_docs += self.all_docs[idx]["content"] + "\n\n"
+                elif isinstance(idx, str):
+                    if idx in self.doc_map:
+                        retrieved_docs += self.doc_map[idx] + "\n\n"
 
             if retrieved_docs:
                 f_res = await faithfulness_metric.ascore(
@@ -211,8 +218,8 @@ async def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="examples/validation/calculator.json",
-        help="验证配置文件路径（默认: examples/validation/calculator.json）",
+        required=True,
+        help="验证配置文件路径 (必填)",
     )
     parser.add_argument(
         "--dataset",
@@ -224,7 +231,7 @@ async def main():
         "--docs",
         type=str,
         default=None,
-        help="独立文档库文件路径（默认从 config 同级目录查找）",
+        help="独立文档库文件路径（若提供则优先使用，否则使用 config 中的 rag_data）",
     )
     parser.add_argument(
         "--output",
@@ -268,25 +275,89 @@ async def main():
         print(f"❌ 加载配置/数据集失败: {e}")
         return
 
+    if dataset_path:
+        print(f"✓ 已加载独立测试集: {dataset_path}")
+
     # 加载文档
     print("📂 加载测试文档...")
-    if args.docs:
+    all_docs = []
+
+    # 1. 优先使用配置中的 rag_data
+    if config.rag_data:
+        print(f"✓ 使用配置中的 rag_data ({len(config.rag_data)} 条)")
+        all_docs = config.rag_data
+
+    # 2. 如果配置中没有，则必须从 --docs 参数加载
+    elif args.docs:
         docs_path = Path(args.docs)
         if not docs_path.is_absolute():
             docs_path = Path.cwd() / args.docs
-    else:
-        # 向后兼容：默认查找 calculator_demo.json
-        docs_path = config_path.parent / "calculator_demo.json"
 
-    if not docs_path.exists():
-        print(f"❌ 错误：文档文件不存在 {docs_path}")
+        if not docs_path.exists():
+            print(f"❌ 错误：指定文档文件不存在: {docs_path}")
+            return
+
+        import json
+        try:
+            with open(docs_path, 'r', encoding='utf-8') as f:
+                all_docs = json.load(f)
+            print(f"✓ 已加载 {len(all_docs)} 个文档 (路径: {docs_path})")
+        except json.JSONDecodeError as e:
+            print(f"❌ 错误：文档文件格式错误 (非 JSON): {e}")
+            return
+        except Exception as e:
+            print(f"❌ 错误：加载文档文件失败: {e}")
+            return
+    else:
+        # 不再支持默认回退到 calculator_demo.json
+        print("❌ 错误：必须提供 RAG 文档数据")
+        print("  - 方式 1: 在配置文件中包含 'rag_data' 字段")
+        print("  - 方式 2: 使用 --docs 参数指定文档文件")
         return
 
-    import json
-    with open(docs_path, 'r', encoding='utf-8') as f:
-        all_docs = json.load(f)
+    # 验证文档格式
+    if not all_docs:
+        print("❌ 错误：文档数据为空")
+        return
 
-    print(f"✓ 已加载 {len(all_docs)} 个文档 (路径: {docs_path})\n")
+    print("🔍 验证文档格式...")
+    doc_ids = set()
+    for i, doc in enumerate(all_docs):
+        if not isinstance(doc, dict):
+            print(f"❌ 错误：文档 #{i+1} 格式错误，应为字典")
+            return
+        if "id" not in doc:
+             print(f"❌ 错误：文档 #{i+1} 缺少必要字段 'id'")
+             return
+        if "content" not in doc:
+             print(f"❌ 错误：文档 #{i+1} 缺少必要字段 'content'")
+             return
+        doc_ids.add(str(doc["id"]))
+    print("✓ 文档格式验证通过")
+
+    # 验证测试用例引用的文档是否存在
+    print("🔍 验证测试用例文档引用...")
+    missing_refs = []
+
+    for tc in config.test_cases:
+        for idx in tc.docs_indices:
+            # 如果是字符串 ID，检查是否存在于文档 ID 集合中
+            if isinstance(idx, str):
+                if idx not in doc_ids:
+                    missing_refs.append(f"{tc.id} -> {idx} (ID)")
+            # 如果是整数索引，检查是否越界
+            elif isinstance(idx, int):
+                if idx < 0 or idx >= len(all_docs):
+                    missing_refs.append(f"{tc.id} -> {idx} (Index)")
+
+    if missing_refs:
+        print(f"❌ 错误：发现 {len(missing_refs)} 个无效的文档引用")
+        print(f"  无效引用示例: {missing_refs[:3]}...")
+        return
+    else:
+        print("✓ 文档引用验证通过")
+
+    print("\n")
 
     # 初始化 Gemini 客户端
     print("🔑 正在初始化 Gemini 客户端...")

@@ -4,8 +4,9 @@
 
 ### 1. 运行默认验证程序
 ```bash
-# 使用默认配置 (examples/validation/calculator.json)
-uv run python -m agentic_rag.validation_runner
+# 使用 calculator 验证集
+uv run python -m agentic_rag.validation_runner \
+  --config examples/validation/calculator.json
 ```
 
 ### 2. 使用自定义配置与并发控制
@@ -104,9 +105,8 @@ nAgent/
 │   └── rag.py
 ├── examples/
 │   ├── validation/
-│   │   ├── calculator.json            (验证配置)
-│   │   ├── calculator_dataset.json    (独立数据集示例)
-│   │   └── calculator_demo.json       (演示数据/文档库)
+│   │   ├── calculator.json            (自包含验证配置)
+│   │   └── calculator_dataset.json    (独立数据集示例)
 │   └── ...
 ├── docs/
 │   ├── VALIDATION_FRAMEWORK.md        (详细文档)
@@ -144,12 +144,19 @@ nAgent/
     "model_name": "gemini-2.0-flash",
     "max_iterations": 5
   },
+  "rag_data": [
+    {
+      "id": "doc1",
+      "content": "文档内容...",
+      "metadata": {"source": "file.txt"}
+    }
+  ],
   "test_cases": [
     {
       "id": "test_1",
       "user_input": "问题文本",
       "reference": "参考答案",
-      "docs_indices": [0, 1],
+      "docs_indices": ["doc1"],
       "description": "测试描述"
     }
   ],
