@@ -88,7 +88,7 @@ if __name__ == "__main__":
     # 包装器适配 Ragas
     from ragas.embeddings import LangchainEmbeddingsWrapper
     generator_llm = GoogleGenAIWrapper(client=client, model=args.model)
-    lc_embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
+    lc_embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=api_key)
     embeddings = LangchainEmbeddingsWrapper(lc_embeddings)
 
     try:

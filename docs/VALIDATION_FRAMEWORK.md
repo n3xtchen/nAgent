@@ -30,7 +30,13 @@ config = ValidationConfig.from_json(
 - 支持从字典创建，便于 JSON 反序列化
 - 包含文档索引信息，支持多文档验证
 
-#### 3. **ValidationRunner** - 通用验证程序基类
+#### 3. **TestsetGenerator** - 自动化测试集生成器
+- **基于 Ragas**: 集成 Ragas 框架，利用 LLM 自动构建知识图谱
+- **自动生成**: 从文档直接生成高质量问答对 (QA Pairs)
+- **格式兼容**: 生成结果直接输出为 `TestCase` 格式，无缝接入验证框架
+- **场景覆盖**: 支持推理 (Reasoning)、条件 (Conditioning)、多上下文 (Multi-context) 等多种评估类型
+
+#### 4. **ValidationRunner** - 通用验证程序基类
 - 可扩展的抽象基类，子类需实现 `run_test_case()` 方法
 - 完整的验证流程管理：初始化、循环、汇总、报告生成
 - **并发执行支持**：`run()` 方法支持 `max_concurrency` 参数，通过 `asyncio.Semaphore` 实现并发控制。
@@ -72,6 +78,8 @@ summary = await runner.run(max_concurrency=5)
 | `validation.py` | `libs/nagent-rag/src/nagent_rag/` | **核心框架模块**（470 行代码） |
 | `validation/calculator.json` | `examples/` | **Calculator 验证配置文件** |
 | `validation_runner.py` | `apps/agentic-rag/src/agentic_rag/` | **改进的验证程序**（使用新框架） |
+| `testset_generation.py` | `libs/nagent-rag/src/nagent_rag/` | **自动化测试集生成模块** (基于 Ragas) |
+| `generate_dataset.py` | `apps/agentic-rag/src/agentic_rag/` | **测试集生成脚本** |
 | `verify_validation.py` | 项目根目录 | **框架验证脚本** |
 
 ### 修改的文件

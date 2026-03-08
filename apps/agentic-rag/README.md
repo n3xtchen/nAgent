@@ -87,6 +87,36 @@ uv run python -m agentic_rag.validation_runner \
 - `validation_results.csv`: 便于表格处理的简报。
 - `traces/*.json`: 记录每个用例的完整推理步骤 (Trace ID 对应文件名)。
 
+## 自动化测试集生成 (Dataset Generation)
+
+项目提供了基于 Ragas 的自动化测试数据集生成工具，能够根据文档自动构建知识图谱并生成问答对（QA Pairs）。
+
+### 使用方法
+
+```bash
+uv run python apps/agentic-rag/src/agentic_rag/generate_dataset.py \
+    --docs <文档路径> \
+    --output <输出文件路径> \
+    --size <生成数量>
+```
+
+### 参数说明
+
+- `--docs`: 文档来源路径，支持单个文件 (.pdf, .txt, .md, .json) 或包含这些文件的目录。
+- `--output`: 生成的测试集 JSON 文件保存路径 (e.g., `tests/data/generated_testset.json`)。
+- `--size`: 生成测试用例的数量 (默认: 10)。
+- `--model`: 用于生成的 LLM 模型名称 (默认: `gemini-2.0-flash`)。
+
+### 输出格式
+
+生成的 JSON 文件包含 `TestCase` 对象列表，每个对象包含：
+- `user_input`: 生成的问题。
+- `reference`: 参考答案。
+- `docs_indices`: 引用文档的索引列表。
+- `metadata`: 包含源上下文和评估类型（如 reasoning, conditioning 等）。
+
+这个生成的数据集可以直接用于 `validation_runner` 进行自动化评估。
+
 ## 项目结构
 
 - `src/agentic_rag/rag.py`: 核心编排逻辑，连接 Agent 和 Retriever。

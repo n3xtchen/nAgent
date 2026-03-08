@@ -2,14 +2,23 @@
 
 ## 🚀 快速开始
 
-### 1. 运行默认验证程序
+### 1. 自动生成测试数据集 (推荐)
+```bash
+# 从文档目录生成 10 个测试用例
+uv run python apps/agentic-rag/src/agentic_rag/generate_dataset.py \
+  --docs my_docs_folder \
+  --output my_dataset.json \
+  --size 10
+```
+
+### 2. 运行默认验证程序
 ```bash
 # 使用 calculator 验证集
 uv run python -m agentic_rag.validation_runner \
   --config examples/validation/calculator.json
 ```
 
-### 2. 使用自定义配置与并发控制
+### 3. 使用自定义配置与并发控制
 ```bash
 # 指定配置文件和并发数 (提高执行效率)
 uv run python -m agentic_rag.validation_runner \
@@ -18,8 +27,9 @@ uv run python -m agentic_rag.validation_runner \
 
 # 指定独立的数据集和文档库 (实现数据与配置解耦)
 uv run python -m agentic_rag.validation_runner \
+  --config examples/validation/calculator.json \
   --dataset my_dataset.json \
-  --docs my_docs.json \
+  --docs my_docs_folder \
   --concurrency 3
 
 # 指定输出目录

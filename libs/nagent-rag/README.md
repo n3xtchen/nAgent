@@ -8,3 +8,4 @@ RAG (Retrieval-Augmented Generation) components for nAgent.
 - **SimpleKeywordRetriever**: Keyword-based search using simple tokenization or jieba.
 - **RetrieverTool**: A tool wrapper that allows agents to use any retriever.
 - **QueryRewriter**: Utilities for refining and expanding search queries.
+- **TestsetGenerator**: Automated test dataset generation using Ragas, supporting Knowledge Graph construction and TestCase export.
