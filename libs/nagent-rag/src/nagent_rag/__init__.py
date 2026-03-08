@@ -10,6 +10,10 @@ from .eval import (
     generate_testset,
     get_testset_generator,
 )
+from .testset_generation import (
+    RagasTestsetGenerator,
+    load_rag_data,
+)
 from .validation import (
     ValidationConfig,
     ValidationRunner,
@@ -33,6 +37,8 @@ __all__ = [
     "run_evaluation",
     "generate_testset",
     "get_testset_generator",
+    "RagasTestsetGenerator",
+    "load_rag_data",
     "ValidationConfig",
     "ValidationRunner",
     "ValidationReport",
