@@ -8,7 +8,7 @@ import os
 from dataclasses import asdict
 from pathlib import Path
 
-from nagent_rag.eval import GoogleGenAIWrapper
+from nagent_rag import get_ragas_models
 from nagent_rag.testset_generation import RagasTestsetGenerator, load_rag_data
 
 # 配置日志
@@ -57,7 +57,6 @@ async def generate_dataset_task(
 
 if __name__ == "__main__":
     import argparse
-    from langchain_google_genai import GoogleGenerativeAIEmbeddings
     from google import genai
 
     parser = argparse.ArgumentParser(description="生成 RAG 测试数据集")
@@ -86,10 +85,7 @@ if __name__ == "__main__":
     client = genai.Client(api_key=api_key)
 
     # 包装器适配 Ragas
-    from ragas.embeddings import LangchainEmbeddingsWrapper
-    generator_llm = GoogleGenAIWrapper(client=client, model=args.model)
-    lc_embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=api_key)
-    embeddings = LangchainEmbeddingsWrapper(lc_embeddings)
+    generator_llm, embeddings = get_ragas_models(client, args.model, api_key)
 
     try:
         asyncio.run(generate_dataset_task(

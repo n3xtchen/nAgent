@@ -24,6 +24,7 @@ from .validation import (
     ValidationSummary,
     MetricType,
 )
+from .models import get_ragas_models
 
 __all__ = [
     "BaseRetriever",
@@ -47,4 +48,5 @@ __all__ = [
     "MetricScore",
     "ValidationSummary",
     "MetricType",
+    "get_ragas_models",
 ]
