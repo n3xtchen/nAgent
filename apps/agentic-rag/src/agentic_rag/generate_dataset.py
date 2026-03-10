@@ -85,7 +85,7 @@ if __name__ == "__main__":
     client = genai.Client(api_key=api_key)
 
     # 包装器适配 Ragas
-    generator_llm, embeddings = get_ragas_models(client, args.model, api_key)
+    generator_llm, embeddings = get_ragas_models(client, args.model)
 
     try:
         asyncio.run(generate_dataset_task(
