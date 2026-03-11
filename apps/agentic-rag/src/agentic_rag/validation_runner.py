@@ -156,7 +156,26 @@ class AgenticRAGValidationRunner(ValidationRunner):
                 metric_type=MetricType.REASONING_STEPS,
             )
 
-            # 4. 忠实性（需要上下文）
+            # 4. 上下文召回率 (Context Recall)
+            if test_case.docs_indices:
+                import re
+                expected_doc_ids = set(str(idx) for idx in test_case.docs_indices)
+                actual_doc_ids = set()
+                for step in trace:
+                    if step.get("action") == "retrieve":
+                        observation = step.get("observation", "")
+                        extracted_ids = re.findall(r"\(ID:\s*(.*?)\)", observation)
+                        actual_doc_ids.update(extracted_ids)
+
+                if expected_doc_ids:
+                    recall = len(expected_doc_ids.intersection(actual_doc_ids)) / len(expected_doc_ids)
+                    metrics["context_recall"] = MetricScore(
+                        name="Context Recall",
+                        value=recall,
+                        metric_type=MetricType.CONTEXT_RECALL,
+                    )
+
+            # 5. 忠实性（需要上下文）
             retrieved_docs = ""
 
             for idx in test_case.docs_indices:
@@ -418,6 +437,15 @@ async def main():
             print(f"  效率: △ 良好 (4-5步) - {avg_steps:.2f}")
         else:
             print(f"  效率: ✗ 需改进 (>5步) - {avg_steps:.2f}")
+
+    avg_recall = summary.metrics_average.get("context_recall", -1)
+    if avg_recall >= 0:
+        if avg_recall >= 0.8:
+            print(f"  召回率: ✓ 优秀 (≥0.8) - {avg_recall:.2f}")
+        elif avg_recall >= 0.5:
+            print(f"  召回率: △ 良好 (0.5-0.79) - {avg_recall:.2f}")
+        else:
+            print(f"  召回率: ✗ 需改进 (<0.5) - {avg_recall:.2f}")
 
     print(f"\n📁 结果保存位置: {output_dir}")
     print(f"📁 Trace 日志位置: {output_dir}/traces")

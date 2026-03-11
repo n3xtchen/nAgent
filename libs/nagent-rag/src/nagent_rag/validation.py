@@ -41,6 +41,7 @@ class MetricType(Enum):
     RELEVANCE = "relevance"  # 相关性
     FAITHFULNESS = "faithfulness"  # 忠实性
     REASONING_STEPS = "reasoning_steps"  # 推理步数
+    CONTEXT_RECALL = "context_recall"  # 召回率
     CUSTOM = "custom"  # 自定义指标
 
 
@@ -310,6 +311,10 @@ class ValidationRunner(ABC):
                                 logger.info(
                                     f"  • {metric_name}: {score.value:.0f}"
                                 )
+                            elif score.metric_type == MetricType.CONTEXT_RECALL:
+                                logger.info(
+                                    f"  • {metric_name}: {score.value:.2f}"
+                                )
                             else:
                                 logger.info(
                                     f"  • {metric_name}: {score.value:.2f}/5.0"
@@ -411,7 +416,9 @@ class ValidationRunner(ABC):
         if summary.metrics_average:
             logger.info("\n📈 平均指标:")
             for metric_name, value in summary.metrics_average.items():
-                if metric_name == "reasoning_steps":
+                if metric_name in ["reasoning_steps"]:
+                    logger.info(f"  {metric_name}: {value:.2f}")
+                elif metric_name in ["context_recall"]:
                     logger.info(f"  {metric_name}: {value:.2f}")
                 else:
                     logger.info(f"  {metric_name}: {value:.2f}/5.0")

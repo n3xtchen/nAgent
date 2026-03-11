@@ -1,5 +1,7 @@
 REACT_PROMPT_TEMPLATE = """你是一个智能助手。你可以通过一系列的思考 (Thought)、行动 (Action) 和观察 (Observation) 来回答问题。
 
+**严重警告：禁止直接回答任何问题。在给出任何最终答案（Final Answer）之前，你必须首先使用 retrieve 工具检索资料！不准依赖你的内部知识库！**
+
 工具列表:
 {tools_description}
 
