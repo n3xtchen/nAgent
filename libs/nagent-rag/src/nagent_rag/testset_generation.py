@@ -57,25 +57,19 @@ class RagasTestsetGenerator(TestsetGenerator):
         # If documents are already chunked (e.g. from JSON), we might want to respect that.
         # But Ragas expects specific node structure.
 
-        # Check if we need to split
-        # We assume input documents are already "chunks" or "pages" from the JSON loader
-        # But to be safe and consistent with Ragas, we might re-split or ensure they are proper nodes.
-
-        # In the reference implementation, it splits documents using TokenTextSplitter
-        text_splitter = TokenTextSplitter(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
-        splits = text_splitter.split_documents(documents)
-
-        for i, split in enumerate(splits):
-            clean_content = split.page_content.strip()
+        # Directly use input documents to preserve exact indexing
+        # so that output docs_indices match the original array.
+        for i, doc in enumerate(documents):
+            clean_content = doc.page_content.strip()
             content_to_index[clean_content] = i
 
             nodes.append(
                 Node(
                     type=NodeType.CHUNK,
                     properties={
-                        "page_content": split.page_content,
-                        "filename": split.metadata.get("source", ""),
-                        "page_number": split.metadata.get("page", 0),
+                        "page_content": doc.page_content,
+                        "filename": doc.metadata.get("source", ""),
+                        "page_number": doc.metadata.get("page", 0),
                         "doc_id": str(i)
                     }
                 )
@@ -210,11 +204,14 @@ def load_rag_data(path: Union[str, Path]) -> List[Document]:
 
             if isinstance(data, list):
                 for item in data:
-                    content = item.get("page_content", "")
+                    content = item.get("page_content", item.get("content", ""))
                     metadata = item.get("metadata", {})
                     # Ensure metadata is dict
                     if not isinstance(metadata, dict):
                         metadata = {}
+                    # Add original id to metadata if present
+                    if "id" in item and "id" not in metadata:
+                        metadata["id"] = item["id"]
                     documents.append(Document(page_content=content, metadata=metadata))
             else:
                 logger.warning(f"JSON file {path} does not contain a list.")
