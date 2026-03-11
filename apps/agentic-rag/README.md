@@ -79,6 +79,7 @@ uv run python -m agentic_rag.validation_runner \
 - **Correctness (准确性)**: 基于 LLM 裁判评估生成答案与参考答案的一致性。
 - **Answer Relevance (相关性)**: 评估答案是否直接回答了原始问题。
 - **Faithfulness (忠实性)**: 检查答案是否完全由检索到的文档支持（检测幻觉）。
+- **Context Recall (上下文召回率)**: 通过提取 Trace 评估检索出的上下文对参考答案的覆盖率。
 - **Reasoning Steps (推理步数)**: Agent 完成任务所需的推理迭代步数。
 
 ### 输出说明
@@ -113,9 +114,9 @@ uv run python apps/agentic-rag/src/agentic_rag/generate_dataset.py \
 - `user_input`: 生成的问题。
 - `reference`: 参考答案。
 - `docs_indices`: 引用文档的索引列表。
-- `metadata`: 包含源上下文和评估类型（如 reasoning, conditioning 等）。
+- `metadata`: 包含源上下文（包括多跳 n-hop 标识）和评估类型（如 reasoning, conditioning 等）。
 
-这个生成的数据集可以直接用于 `validation_runner` 进行自动化评估。
+生成过程已引入 `DiskCacheBackend` 以复用 API 调用结果，大幅提升生成速度。这个生成的数据集可以直接用于 `validation_runner` 进行自动化评估。
 
 ## 项目结构
 

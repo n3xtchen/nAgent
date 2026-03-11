@@ -240,6 +240,7 @@ outputs/
 | CORRECTNESS | 答案准确性 | 0-5 |
 | RELEVANCE | 答案相关性 | 0-5 |
 | FAITHFULNESS | 答案忠实性 (检测幻觉) | 0-5 |
+| CONTEXT_RECALL | 上下文召回率 (评估检索质量) | 0-1 |
 | REASONING_STEPS | 推理步数 | >= 0 |
 | CUSTOM | 自定义指标 | 自定义 |
 

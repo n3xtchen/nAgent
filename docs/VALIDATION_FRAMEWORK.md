@@ -33,6 +33,8 @@ config = ValidationConfig.from_json(
 #### 3. **TestsetGenerator** - 自动化测试集生成器
 - **基于 Ragas**: 集成 Ragas 框架，利用 LLM 自动构建知识图谱
 - **自动生成**: 从文档直接生成高质量问答对 (QA Pairs)
+- **多跳(hop)上下文**: 支持正则解析并在元数据中保留多跳上下文标识
+- **缓存优化**: 引入 `DiskCacheBackend` 替代原有的封装，并使用原生 `GoogleEmbeddings` 以避免重复调用提升速度
 - **格式兼容**: 生成结果直接输出为 `TestCase` 格式，无缝接入验证框架
 - **场景覆盖**: 支持推理 (Reasoning)、条件 (Conditioning)、多上下文 (Multi-context) 等多种评估类型
 
@@ -58,7 +60,7 @@ summary = await runner.run(max_concurrency=5)
 - 支持序列化为字典（用于 JSON/CSV 输出）
 
 #### 5. **MetricScore** - 评估指标得分
-- 支持多种指标类型：Correctness, Relevance, Faithfulness, Reasoning Steps
+- 支持多种指标类型：Correctness, Relevance, Faithfulness, Reasoning Steps, Context Recall
 - 每个指标包含：名称、数值、指标类型、解释原因
 
 #### 6. **ValidationSummary** - 验证总结
@@ -196,7 +198,7 @@ uv run python -m agentic_rag.validation_runner --config examples/validation/my_v
 - ✓ 易于扩展新的验证场景
 
 ### 2. **灵活的指标系统**
-- ✓ 支持多种预定义指标（Correctness, Relevance, Faithfulness, Reasoning Steps）
+- ✓ 支持多种预定义指标（Correctness, Relevance, Faithfulness, Reasoning Steps, Context Recall）
 - ✓ 支持自定义指标
 - ✓ 自动计算指标统计（平均、最小、最大）
 
