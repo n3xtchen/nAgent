@@ -122,7 +122,36 @@ uv run python apps/agentic-rag/src/agentic_rag/generate_dataset.py \
 
 - `src/agentic_rag/rag.py`: 核心编排逻辑，连接 Agent 和 Retriever。
 - `src/agentic_rag/main.py`: CLI 入口。
+- `src/agentic_rag/chunk_cli.py`: 文档分块工具 CLI。
 - `example.py`: 演示如何注入文档并进行问答。
+
+## 工具: 文档分块 (Document Chunking)
+
+该工具可以将长文本文件（.md, .txt, .py 等）切分为较小的块，并保存为兼容 RAG 系统格式的 JSON 文件。
+
+### 使用方法
+
+```bash
+uv run python -m agentic_rag.chunk_cli <路径> [选项]
+```
+
+### 参数说明
+
+- `path`: 必填。要处理的文件或目录路径。
+- `--chunk-size`: 分块大小（字符数，默认 1000）。
+- `--chunk-overlap`: 相邻分块的重叠大小（字符数，默认 200）。
+- `--output`: 输出 JSON 文件路径。如果未指定，结果将打印到控制台。
+- `--recursive`: 如果路径是目录，是否递归搜索子目录。
+
+### 示例
+
+```bash
+# 处理目录并保存到文件
+uv run python -m agentic_rag.chunk_cli ./docs --recursive --output my_docs.json
+
+# 处理单个文件并配置分块大小
+uv run python -m agentic_rag.chunk_cli README.md --chunk-size 500 --chunk-overlap 50
+```
 
 ## 下一步计划 (Phase 2)
 

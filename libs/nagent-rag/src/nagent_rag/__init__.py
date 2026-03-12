@@ -1,4 +1,7 @@
 from .retriever import BaseRetriever, SimpleKeywordRetriever
+from .document_loaders import TextLoader
+from .text_splitter import RecursiveCharacterTextSplitter
+from .chunking import ChunkingProcessor
 from .eval import (
     GoogleGenAIWrapper,
     correctness_metric,
@@ -29,6 +32,9 @@ from .models import get_ragas_models
 __all__ = [
     "BaseRetriever",
     "SimpleKeywordRetriever",
+    "TextLoader",
+    "RecursiveCharacterTextSplitter",
+    "ChunkingProcessor",
     "GoogleGenAIWrapper",
     "correctness_metric",
     "faithfulness_metric",
