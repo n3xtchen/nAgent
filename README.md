@@ -46,8 +46,8 @@ uv run python -m agentic_rag.validation_runner
 # 指定自定义配置文件
 uv run python -m agentic_rag.validation_runner --config examples/validation/calculator.json
 
-# 指定输出目录
-uv run python -m agentic_rag.validation_runner --output my_output_dir
+# 指定输出目录和 RAG 类型 (agentic 或 simple)
+uv run python -m agentic_rag.validation_runner --output my_output_dir --rag_type simple
 ```
 
 ### 验证框架完整性

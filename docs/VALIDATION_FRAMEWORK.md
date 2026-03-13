@@ -159,8 +159,8 @@ uv run python -m agentic_rag.validation_runner --config examples/validation/my_v
 # 指定输出目录
 uv run python -m agentic_rag.validation_runner --output my_output_dir
 
-# 组合使用
-uv run python -m agentic_rag.validation_runner --config examples/validation/my_validation.json --output results
+# 组合使用 (同时指定 RAG 类型)
+uv run python -m agentic_rag.validation_runner --config examples/validation/my_validation.json --output results --rag_type simple
 ```
 
 ## 📊 配置文件格式
@@ -215,6 +215,7 @@ uv run python -m agentic_rag.validation_runner --config examples/validation/my_v
 ### 5. **命令行支持**
 - ✓ `--config` 参数指定配置文件
 - ✓ `--output` 参数指定输出目录
+- ✓ `--rag_type` 参数动态切换 RAG 实现 (`agentic` 或 `simple`)
 - ✓ 详细的命令行帮助
 
 ## 📈 输出文件示例

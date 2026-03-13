@@ -32,9 +32,10 @@ uv run python -m agentic_rag.validation_runner \
   --docs my_docs_folder \
   --concurrency 3
 
-# 指定输出目录
+# 指定输出目录和 RAG 类型 (agentic 或 simple)
 uv run python -m agentic_rag.validation_runner \
-  --output my_results_directory
+  --output my_results_directory \
+  --rag_type simple
 ```
 
 ### 3. 验证框架功能

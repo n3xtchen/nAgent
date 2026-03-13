@@ -4,8 +4,9 @@
 
 ## 功能特性
 
+- **多 RAG 策略支持**: 支持基于大模型的简单 RAG (`SimpleRAG`) 和基于 Agent 的复杂 RAG (`AgenticRAG`)。
 - **ReAct 智能体**: 使用 `nagent-core` 提供的 `ReActAgent` 进行多步推理。
-- **检索集成**: 将 `nagent-rag` 的检索器封装为智能体可调用的工具。
+- **检索集成**: 将 `nagent-rag` 的检索器封装为可调用的工具（对 Agentic RAG）。
 - **可运行程序**: 提供 CLI 接口和示例脚本。
 
 ## 快速开始
@@ -74,6 +75,7 @@ uv run python -m agentic_rag.validation_runner \
 - `--docs`: 独立文档库文件路径（JSON 格式）。若提供，将优先使用；否则使用 config 中的 `rag_data`。
 - `--output`: 结果输出目录（默认：`outputs/results/validation`）。
 - `--concurrency`: 并发测试用例数（默认：3）。在 API 配额受限时可设为 `1`。
+- `--rag_type`: 指定 RAG 实现类型 (`agentic` 或 `simple`)，若指定则会覆盖配置文件中的默认设定。
 
 ### 验证指标
 - **Correctness (准确性)**: 基于 LLM 裁判评估生成答案与参考答案的一致性。
@@ -120,7 +122,10 @@ uv run python apps/agentic-rag/src/agentic_rag/generate_dataset.py \
 
 ## 项目结构
 
-- `src/agentic_rag/rag.py`: 核心编排逻辑，连接 Agent 和 Retriever。
+- `src/agentic_rag/rags/`: RAG 核心实现目录。
+  - `base.py`: 基础 RAG 抽象类。
+  - `agentic.py`: 基于 ReAct Agent 的复杂 RAG 实现。
+  - `simple.py`: 传统的单次检索与生成 (Simple RAG) 实现。
 - `src/agentic_rag/main.py`: CLI 入口。
 - `src/agentic_rag/chunk_cli.py`: 文档分块工具 CLI。
 - `example.py`: 演示如何注入文档并进行问答。
