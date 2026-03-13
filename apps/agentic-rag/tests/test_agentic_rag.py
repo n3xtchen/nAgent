@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from agentic_rag.rag import AgenticRAG
+from agentic_rag.rags import AgenticRAG
 from nagent_rag.retriever import SimpleKeywordRetriever
 
 def test_agentic_rag_integration():

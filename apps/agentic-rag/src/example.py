@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from google import genai
 from nagent_rag.retriever import SimpleKeywordRetriever
-from agentic_rag.rag import AgenticRAG
+from agentic_rag.rags import AgenticRAG
 
 def run_example():
     load_dotenv()

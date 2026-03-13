@@ -35,7 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 导入项目模块
-from agentic_rag.rag import AgenticRAG
+from agentic_rag.rags import AgenticRAG, SimpleRAG
 from nagent_rag.retriever import SimpleKeywordRetriever
 from nagent_rag.validation import ValidationConfig, ValidationRunner, MetricScore, MetricType, ValidationResult
 from nagent_rag.eval import (
@@ -72,6 +72,7 @@ class AgenticRAGValidationRunner(ValidationRunner):
         self.client = client
         self.all_docs = all_docs
         self.rag = None
+        self.rag_type = config.model_config.get("rag_type", "agentic")
         # 预构建 ID 映射以提高检索效率
         self.doc_map = {str(d.get("id")): d["content"] for d in self.all_docs if isinstance(d, dict) and "id" in d and "content" in d}
 
@@ -83,21 +84,30 @@ class AgenticRAGValidationRunner(ValidationRunner):
         # 创建检索器
         print("🔍 正在初始化检索器...")
         retriever = SimpleKeywordRetriever()
-        doc_contents = [doc["content"] for doc in self.all_docs]
-        retriever.fit(doc_contents)
+        retriever.fit(self.all_docs)
 
-        # 初始化 Agentic RAG
+        # 初始化 RAG
         trace_dir = self.output_dir / "traces"
         trace_dir.mkdir(parents=True, exist_ok=True)
 
-        print("🤖 正在初始化 Agentic RAG...")
-        self.rag = AgenticRAG(
-            client=self.client,
-            retriever=retriever,
-            model_name=self.config.model_config.get("model_name", "gemini-2.0-flash"),
-            max_iterations=self.config.model_config.get("max_iterations", 5),
-            trace_dir=str(trace_dir),
-        )
+        print(f"🤖 正在初始化 {self.rag_type} RAG...")
+        model_name = self.config.model_config.get("model_name", "gemini-2.0-flash")
+
+        if self.rag_type.lower() == "simple":
+            self.rag = SimpleRAG(
+                client=self.client,
+                retriever=retriever,
+                model_name=model_name,
+                trace_dir=str(trace_dir),
+            )
+        else:
+            self.rag = AgenticRAG(
+                client=self.client,
+                retriever=retriever,
+                model_name=model_name,
+                max_iterations=self.config.model_config.get("max_iterations", 5),
+                trace_dir=str(trace_dir),
+            )
 
     async def run_test_case(self, test_case):
         """执行单个测试用例"""
@@ -264,6 +274,13 @@ async def main():
         default=3,
         help="并发测试用例数（默认: 3）",
     )
+    parser.add_argument(
+        "--rag_type",
+        type=str,
+        default=None,
+        choices=["agentic", "simple"],
+        help="RAG 实现类型 (agentic 或 simple)，若指定则覆盖配置文件中的设定",
+    )
     args = parser.parse_args()
 
     # 确定路径
@@ -290,6 +307,8 @@ async def main():
     # 加载配置
     try:
         config = ValidationConfig.from_json(config_path, dataset_path=dataset_path)
+        if args.rag_type:
+            config.model_config["rag_type"] = args.rag_type
     except Exception as e:
         print(f"❌ 加载配置/数据集失败: {e}")
         return

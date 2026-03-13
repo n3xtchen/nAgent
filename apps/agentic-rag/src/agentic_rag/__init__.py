@@ -1,3 +1,3 @@
-from .rag import AgenticRAG
+from .rags import BaseRAG, AgenticRAG, SimpleRAG
 
-__all__ = ["AgenticRAG"]
+__all__ = ["BaseRAG", "AgenticRAG", "SimpleRAG"]

@@ -3,7 +3,7 @@ import shutil
 import pytest
 from unittest.mock import MagicMock
 from nagent_rag.retriever import BaseRetriever
-from agentic_rag.rag import AgenticRAG
+from agentic_rag.rags import AgenticRAG
 
 def test_agentic_rag_trace_persistence():
     trace_dir = "test_traces"
