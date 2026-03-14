@@ -149,15 +149,19 @@ class ReActAgent:
                 else:
                     observation = f"Unknown tool: {tool_name}"
 
+                observation_str_for_trace = str(observation)
+                if tool_name == "retrieve":
+                    observation_str_for_trace = re.sub(r"内容:.*?(?=\n\n---\n\n|\Z)", "内容: [Content Omitted]", observation_str_for_trace, flags=re.DOTALL)
+
                 trace.append({
                     "step": i + 1,
                     "thought": thought,
                     "action": (tool_name, tool_args),
-                    "observation": str(observation)
+                    "observation": observation_str_for_trace
                 })
 
                 observation_str = f"\nObservation: {observation}\n"
-                logger.debug(f"Tool Output: {observation_str}")
+                logger.debug(f"Tool Output: \nObservation: {observation_str_for_trace}\n")
                 full_history += observation_str
             else:
                 # 如果既没有 Final Answer 也没有 Action，可能模型迷茫了
@@ -228,15 +232,19 @@ class ReActAgent:
                 else:
                     observation = f"Unknown tool: {tool_name}"
 
+                observation_str_for_trace = str(observation)
+                if tool_name == "retrieve":
+                    observation_str_for_trace = re.sub(r"内容:.*?(?=\n\n---\n\n|\Z)", "内容: [Content Omitted]", observation_str_for_trace, flags=re.DOTALL)
+
                 trace.append({
                     "step": i + 1,
                     "thought": thought,
                     "action": (tool_name, tool_args),
-                    "observation": str(observation)
+                    "observation": observation_str_for_trace
                 })
 
                 observation_str = f"\nObservation: {observation}\n"
-                logger.debug(f"Tool Output: {observation_str}")
+                logger.debug(f"Tool Output: \nObservation: {observation_str_for_trace}\n")
                 full_history += observation_str
             else:
                 logger.warning("LLM output did not contain Action or Final Answer")

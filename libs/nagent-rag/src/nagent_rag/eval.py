@@ -309,7 +309,23 @@ async def run_experiment(row, rag_client, eval_client, eval_model="gemini-2.0-fl
             if action and isinstance(action, (list, tuple)) and action[0] == "retrieve":
                 observation = step.get("observation")
                 if observation:
-                    contexts.append(observation)
+                    import re
+                    doc_ids = re.findall(r"\(ID:\s*(.*?)\)", observation)
+                    if doc_ids and hasattr(rag_client, "retriever") and hasattr(rag_client.retriever, "documents"):
+                        for doc_id in doc_ids:
+                            for i, doc in enumerate(rag_client.retriever.documents):
+                                if isinstance(doc, dict):
+                                    if doc.get("id") == doc_id:
+                                        contexts.append(doc.get("content", ""))
+                                        break
+                                elif hasattr(doc, "metadata") and doc.metadata.get("id") == doc_id:
+                                    contexts.append(doc.page_content)
+                                    break
+                                elif hasattr(doc, "id") and doc.id == doc_id:
+                                    contexts.append(doc.page_content)
+                                    break
+                    else:
+                        contexts.append(observation)
         context = "\n\n".join(contexts)
     else:
         context = "\n\n".join([doc["content"] for doc in retrieved_docs])
