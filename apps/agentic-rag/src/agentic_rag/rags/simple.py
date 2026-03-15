@@ -1,5 +1,6 @@
 from typing import Optional, Dict, Any
-from nagent_rag.retriever import BaseRetriever, RetrieverTool
+from nagent_rag.retrievers.base import BaseRetriever
+from nagent_rag.tools import RetrieverTool
 from .base import BaseRAG
 
 class SimpleRAG(BaseRAG):

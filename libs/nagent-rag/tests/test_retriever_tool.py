@@ -1,4 +1,5 @@
-from nagent_rag.retriever import SimpleKeywordRetriever, RetrieverTool
+from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
+from nagent_rag.tools import RetrieverTool
 
 def test_retriever_tool():
     retriever = SimpleKeywordRetriever()

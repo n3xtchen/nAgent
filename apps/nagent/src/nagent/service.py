@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional
 
 import tenacity
 from nagent_core import SimpleAgent, is_retryable_error, robust_json_parse
-from nagent_rag import BaseRetriever, SimpleKeywordRetriever
+from nagent_rag.retrievers.base import BaseRetriever
+from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
 
 logger = logging.getLogger(__name__)
 

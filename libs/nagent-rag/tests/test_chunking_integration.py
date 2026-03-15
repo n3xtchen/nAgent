@@ -1,6 +1,7 @@
 import os
 import tempfile
-from nagent_rag import ChunkingProcessor, SimpleKeywordRetriever
+from nagent_rag.chunking import ChunkingProcessor
+from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
 
 def test_rag_chunking_integration():
     # 创建一个长文本文件

@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 import sys
-from nagent_rag import ChunkingProcessor
+from nagent_rag.chunking import ChunkingProcessor
 
 def main():
     parser = argparse.ArgumentParser(description="nAgent RAG 文档分块 CLI")

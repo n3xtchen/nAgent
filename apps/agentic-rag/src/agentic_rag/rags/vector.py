@@ -2,14 +2,14 @@ from typing import Optional, Dict, Any
 from nagent_core.agent import ReActAgent
 from nagent_core.tool import CalculatorTool, PythonInterpreterTool, WebSearchTool
 from nagent_rag.retrievers.base import BaseRetriever
-from nagent_rag.tools import RetrieverTool
 from nagent_rag.query_utils import QueryRewriter, QueryDecomposer
+from ..tools.vector_tools import VectorSearchTool, VectorStoreTool
 from .base import BaseRAG
 
-class AgenticRAG(BaseRAG):
+class VectorRAG(BaseRAG):
     """
-    Agentic RAG 系统。
-    使用 ReActAgent 决定何时进行检索。
+    基于向量检索的 Agentic RAG 系统。
+    使用 VectorSearchTool 进行语义检索，使用 VectorStoreTool 进行动态写入。
     """
     def __init__(
         self,
@@ -37,7 +37,9 @@ class AgenticRAG(BaseRAG):
         self.rewriter = QueryRewriter(client, model_name=model_name)
         self.decomposer = QueryDecomposer(client, model_name=model_name)
 
-        self.retriever_tool = RetrieverTool(retriever)
+        # 使用向量检索和存储工具
+        self.vector_tool = VectorSearchTool(retriever)
+        self.vector_store_tool = VectorStoreTool(retriever)
         self.calculator_tool = CalculatorTool()
         self.python_tool = PythonInterpreterTool()
         self.search_tool = WebSearchTool()
@@ -45,7 +47,8 @@ class AgenticRAG(BaseRAG):
         self.agent = ReActAgent(
             client=client,
             tools=[
-                self.retriever_tool,
+                self.vector_tool,
+                self.vector_store_tool,
                 self.calculator_tool,
                 self.python_tool,
                 self.search_tool
@@ -60,11 +63,9 @@ class AgenticRAG(BaseRAG):
         """
         processed_input = user_input
 
-        # 可选：查询改写
         if self.use_query_rewrite:
             processed_input = self.rewriter.rewrite(user_input)
 
-        # 可选：查询拆分
         if self.use_query_decompose:
             sub_queries = self.decomposer.decompose(user_input)
             if len(sub_queries) > 1:
@@ -80,11 +81,9 @@ class AgenticRAG(BaseRAG):
         """
         processed_input = user_input
 
-        # 可选：查询改写 (目前 rewriter 只有同步版本)
         if self.use_query_rewrite:
             processed_input = self.rewriter.rewrite(user_input)
 
-        # 可选：查询拆分 (目前 decomposer 只有同步版本)
         if self.use_query_decompose:
             sub_queries = self.decomposer.decompose(user_input)
             if len(sub_queries) > 1:

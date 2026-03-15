@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from agentic_rag.rags import AgenticRAG
-from nagent_rag.retriever import SimpleKeywordRetriever
+from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
 
 def test_agentic_rag_integration():
     # 1. 准备数据和 Retriever

@@ -3,7 +3,7 @@ import argparse
 import json
 from dotenv import load_dotenv
 from google import genai
-from nagent_rag.retriever import SimpleKeywordRetriever
+from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
 from agentic_rag.rags import AgenticRAG
 
 def main():

@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 # 导入项目模块
 from agentic_rag.rags import AgenticRAG, SimpleRAG
-from nagent_rag.retriever import SimpleKeywordRetriever
+from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
 from nagent_rag.validation import ValidationConfig, ValidationRunner, MetricScore, MetricType, ValidationResult
 from nagent_rag.eval import (
     correctness_metric,

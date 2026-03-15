@@ -8,7 +8,7 @@ import os
 from dataclasses import asdict
 from pathlib import Path
 
-from nagent_rag import get_ragas_models
+from nagent_rag.models import get_ragas_models
 from nagent_rag.testset_generation import RagasTestsetGenerator, load_rag_data
 
 # 配置日志

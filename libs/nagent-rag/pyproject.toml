@@ -9,6 +9,7 @@ dependencies = [
     "ragas>=0.4.3",
     "langchain-core>=0.1.0",
     "pandas",
+    "chromadb>=1.5.5",
 ]
 
 [tool.uv.sources]

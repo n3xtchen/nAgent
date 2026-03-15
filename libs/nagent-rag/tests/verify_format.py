@@ -1,6 +1,6 @@
 import json
 import os
-from nagent_rag import ChunkingProcessor
+from nagent_rag.chunking import ChunkingProcessor
 
 def verify():
     # 目标文件

@@ -2,7 +2,7 @@ import os
 import shutil
 import pytest
 from unittest.mock import MagicMock
-from nagent_rag.retriever import BaseRetriever
+from nagent_rag.retrievers.base import BaseRetriever
 from agentic_rag.rags import AgenticRAG
 
 def test_agentic_rag_trace_persistence():

@@ -1,7 +1,7 @@
 import os
 import json
 import pytest
-from nagent_rag.retriever import SimpleKeywordRetriever
+from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
 
 def test_persistence(tmp_path):
     # 1. Prepare data

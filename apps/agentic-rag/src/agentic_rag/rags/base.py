@@ -4,7 +4,7 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 
-from nagent_rag.retriever import BaseRetriever
+from nagent_rag.retrievers.base import BaseRetriever
 
 
 class BaseRAG(ABC):
