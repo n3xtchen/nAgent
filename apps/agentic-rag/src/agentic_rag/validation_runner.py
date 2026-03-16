@@ -35,8 +35,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 导入项目模块
-from agentic_rag.rags import AgenticRAG, SimpleRAG
+from agentic_rag.rags import AgenticRAG, SimpleRAG, VectorRAG
 from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
+from nagent_rag.retrievers.chroma import ChromaRetriever
 from nagent_rag.validation import ValidationConfig, ValidationRunner, MetricScore, MetricType, ValidationResult
 from nagent_rag.eval import (
     correctness_metric,
@@ -83,7 +84,10 @@ class AgenticRAGValidationRunner(ValidationRunner):
 
         # 创建检索器
         print("🔍 正在初始化检索器...")
-        retriever = SimpleKeywordRetriever()
+        if self.rag_type.lower() == "vector":
+            retriever = ChromaRetriever()
+        else:
+            retriever = SimpleKeywordRetriever()
         retriever.fit(self.all_docs)
 
         # 初始化 RAG
@@ -95,6 +99,13 @@ class AgenticRAGValidationRunner(ValidationRunner):
 
         if self.rag_type.lower() == "simple":
             self.rag = SimpleRAG(
+                client=self.client,
+                retriever=retriever,
+                model_name=model_name,
+                trace_dir=str(trace_dir),
+            )
+        elif self.rag_type.lower() == "vector":
+            self.rag = VectorRAG(
                 client=self.client,
                 retriever=retriever,
                 model_name=model_name,
@@ -278,8 +289,8 @@ async def main():
         "--rag_type",
         type=str,
         default=None,
-        choices=["agentic", "simple"],
-        help="RAG 实现类型 (agentic 或 simple)，若指定则覆盖配置文件中的设定",
+        choices=["agentic", "simple", "vector"],
+        help="RAG 实现类型 (agentic, simple 或 vector)，若指定则覆盖配置文件中的设定",
     )
     args = parser.parse_args()
 

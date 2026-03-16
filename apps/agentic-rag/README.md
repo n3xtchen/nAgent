@@ -47,7 +47,7 @@ uv run -m agentic_rag.main "什么是 Agentic RAG？"
 
 ## 验证工具 (Validation Tool)
 
-项目提供了一个通用的验证运行器 `validation_runner.py`，支持通过配置文件驱动的多维度评估。
+# 项目提供了一个通用的验证运行器 `validation_runner.py`，支持通过配置文件驱动的多维度评估。
 
 ### 运行验证
 ```bash
