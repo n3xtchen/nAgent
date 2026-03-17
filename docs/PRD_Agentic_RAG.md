@@ -92,7 +92,6 @@
 ### Phase 3: 生产级优化与评估 (Production & Evaluation)
 *   **评估与监控 (Evaluation & Monitoring)**：集成 RAGAS 评估框架，建立 Trace 追踪机制，量化推理轨迹与回答质量。
 *   **系统鲁棒性增强**：完善错误处理机制（如 LLM 超时、工具调用失败重试），确保生产环境下的稳定性。
-*   **提示词工程优化 (Prompt Engineering)**：针对生产场景优化 Agent 推理模版，减少幻觉并提升回答的专业性。
 
 ## 7. 评估与质量控制
 
@@ -520,3 +519,4 @@ async def batch_evaluate_rag(test_cases_file: str):
 *   **长效记忆管理 (Advanced Memory)**：探索基于数据库的对话状态存储，引入 ConversationSummary 或集群记忆，支持更长周期的复杂多轮对话。
 *   **高并发性能优化**：全面重构为异步架构（Async/Parallel），支持在单轮推理中产生并并行执行多个 Action，显著降低端到端响应延迟。
 *   **多模态检索支持**：研究如何将图片、表格等多模态信息纳入 Agent 的检索与决策范畴。
+*   **提示词工程优化 (Prompt Engineering)**：针对生产场景优化 Agent 推理模版，减少幻觉并提升回答的专业性。
