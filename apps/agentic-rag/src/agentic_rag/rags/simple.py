@@ -1,6 +1,7 @@
 from typing import Optional, Dict, Any
 from nagent_rag.retrievers.base import BaseRetriever
 from nagent_rag.tools import RetrieverTool
+from nagent_core.llm import LLMClient
 from .base import BaseRAG
 
 class SimpleRAG(BaseRAG):
@@ -25,6 +26,7 @@ class SimpleRAG(BaseRAG):
             index_path=index_path,
         )
         self.k = k
+        self.llm_client = LLMClient(client)
         self.retriever_tool = RetrieverTool(retriever)
 
     def _build_prompt(self, user_input: str, context: str) -> str:
@@ -40,7 +42,7 @@ class SimpleRAG(BaseRAG):
 
     def _generate_response(self, prompt: str) -> str:
         # 使用 Gemini SDK 同步生成
-        response = self.client.models.generate_content(
+        response = self.llm_client.generate_content(
             model=self.model_name,
             contents=prompt,
         )
@@ -48,7 +50,7 @@ class SimpleRAG(BaseRAG):
 
     async def _agenerate_response(self, prompt: str) -> str:
         # 使用 Gemini SDK 异步生成
-        response = await self.client.aio.models.generate_content(
+        response = await self.llm_client.agenerate_content(
             model=self.model_name,
             contents=prompt,
         )

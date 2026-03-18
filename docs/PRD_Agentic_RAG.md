@@ -86,7 +86,7 @@
 ### Phase 2: 本地化与持久化 (Localization & Persistence)
 *   **文件存储支持**：实现基于本地文件的索引保存与读取功能，支持应用状态持久化。
 *   **多文档管理**：增强数据接入能力，支持多来源、大规模文档分片的内存管理。
-*   **多工具支持 (Multi-tools)**：新增 WebSearch、Calculator 或代码执行工具，实现 Agent 的多工具选择与组合能力。
+*   **多工具支持 (Multi-tools)**：新增 Calculator 或代码执行工具，实现 Agent 的多工具选择与组合能力。
 *   **高级 RAG 逻辑集成**：实现 Agent 触发的查询拆解 (Query Decomposition) 和自主查询改写逻辑。
 
 ### Phase 3: 生产级优化与评估 (Production & Evaluation)
@@ -516,6 +516,7 @@ async def batch_evaluate_rag(test_cases_file: str):
 本章节记录了计划在更远期实现的高级功能与优化方向：
 
 *   **外部向量数据库集成**：引入如 Milvus、Pinecone 或 Weaviate 等专业向量数据库支持，以应对海量数据的索引与高性能检索需求。
+*   **外部工具扩展 (External Tools)**：引入 WebSearch 工具，支持 Agent 联网检索实时信息（如通过 Google Custom Search 或 Serper 等 API）。
 *   **长效记忆管理 (Advanced Memory)**：探索基于数据库的对话状态存储，引入 ConversationSummary 或集群记忆，支持更长周期的复杂多轮对话。
 *   **高并发性能优化**：全面重构为异步架构（Async/Parallel），支持在单轮推理中产生并并行执行多个 Action，显著降低端到端响应延迟。
 *   **多模态检索支持**：研究如何将图片、表格等多模态信息纳入 Agent 的检索与决策范畴。

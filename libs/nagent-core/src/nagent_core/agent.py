@@ -1,16 +1,17 @@
 import logging
-import tenacity
 import re
 from typing import List, Dict, Any, Optional
 from .utils import is_retryable_error, robust_json_parse
 from .tool import BaseTool
 from .prompt_utils import REACT_PROMPT_TEMPLATE, format_tools_description
+from .llm import LLMClient
 
 logger = logging.getLogger(__name__)
 
 class SimpleAgent:
     def __init__(self, client, system_prompt: str = None, model_name: str = "gemini-2.0-flash"):
         self.client = client
+        self.llm_client = LLMClient(client)
         self.model_name = model_name
         self.system_prompt = (
             system_prompt
@@ -31,16 +32,9 @@ answer：
         """
         )
 
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=1, min=2, max=30),
-        stop=tenacity.stop_after_attempt(5),
-        retry=tenacity.retry_if_exception(is_retryable_error),
-        before_sleep=tenacity.before_sleep_log(logger, logging.INFO),
-        reraise=True,
-    )
     def query(self, user_input: str):
         try:
-            response = self.client.models.generate_content(
+            response = self.llm_client.generate_content(
                 model=self.model_name,
                 config={"response_mime_type": "application/json"},
                 contents=self.system_prompt.format(user_input=user_input),
@@ -49,20 +43,12 @@ answer：
             result = robust_json_parse(response.text)
             return {"answer": result.get("answer", "No answer found in response.")}
         except Exception as e:
-            if is_retryable_error(e):
-                raise e
-            logger.error(f"Non-retryable error in query: {e}")
+            logger.error(f"Error in query: {e}")
             return {"answer": f"Error: {str(e)}"}
 
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=1, min=2, max=30),
-        stop=tenacity.stop_after_attempt(5),
-        retry=tenacity.retry_if_exception(is_retryable_error),
-        reraise=True,
-    )
     async def aquery(self, user_input: str):
         try:
-            response = await self.client.aio.models.generate_content(
+            response = await self.llm_client.agenerate_content(
                 model=self.model_name,
                 config={"response_mime_type": "application/json"},
                 contents=self.system_prompt.format(user_input=user_input),
@@ -71,9 +57,7 @@ answer：
             result = robust_json_parse(response.text)
             return {"answer": result.get("answer", "No answer found in response.")}
         except Exception as e:
-            if is_retryable_error(e):
-                raise e
-            logger.error(f"Non-retryable error in aquery: {e}")
+            logger.error(f"Error in aquery: {e}")
             return {"answer": f"Error during aquery: {str(e)}"}
 
 class ReActAgent:
@@ -85,6 +69,7 @@ class ReActAgent:
         max_iterations: int = 5,
     ):
         self.client = client
+        self.llm_client = LLMClient(client)
         self.tools = {tool.name: tool for tool in tools}
         self.model_name = model_name
         self.max_iterations = max_iterations
@@ -110,7 +95,7 @@ class ReActAgent:
         for i in range(self.max_iterations):
             logger.info(f"Iteration {i+1}/{self.max_iterations}")
 
-            response = self.client.models.generate_content(
+            response = self.llm_client.generate_content(
                 model=self.model_name,
                 contents=full_history,
             )
@@ -194,7 +179,7 @@ class ReActAgent:
         for i in range(self.max_iterations):
             logger.info(f"Async Iteration {i+1}/{self.max_iterations}")
 
-            response = await self.client.aio.models.generate_content(
+            response = await self.llm_client.agenerate_content(
                 model=self.model_name,
                 contents=full_history,
             )

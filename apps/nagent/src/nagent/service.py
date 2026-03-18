@@ -2,8 +2,8 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-import tenacity
 from nagent_core import SimpleAgent, is_retryable_error, robust_json_parse
+from nagent_core.llm import LLMClient
 from nagent_rag.retrievers.base import BaseRetriever
 from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
 
@@ -34,7 +34,8 @@ class SimpleRAG:
             system_prompt: System prompt template for generation
             model_name: Default model to use for generation
         """
-        self.llm_client = llm_client
+        self.client = llm_client
+        self.llm_client = LLMClient(llm_client)
         self.retriever = retriever or SimpleKeywordRetriever()
         self.model_name = model_name
         self.system_prompt = (
@@ -94,13 +95,6 @@ class SimpleRAG:
 
         return retrieved_docs
 
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=1, min=2, max=30),
-        stop=tenacity.stop_after_attempt(5),
-        retry=tenacity.retry_if_exception(is_retryable_error),
-        before_sleep=tenacity.before_sleep_log(logger, logging.INFO),
-        reraise=True,
-    )
     def generate_response(
         self, query: str, top_k: int = 3, model_name: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -140,7 +134,7 @@ class SimpleRAG:
         prompt = self.system_prompt.format(query=query, context=context)
 
         try:
-            response = self.llm_client.models.generate_content(
+            response = self.llm_client.generate_content(
                 model=model_name or self.model_name, contents=prompt
             )
             return {
@@ -149,19 +143,11 @@ class SimpleRAG:
             }
 
         except Exception as e:
-            if is_retryable_error(e):
-                raise e
             return {
                 "answer": f"Error generating response: {str(e)}",
                 "retrieved_docs": retrieved_docs
             }
 
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=1, min=2, max=30),
-        stop=tenacity.stop_after_attempt(5),
-        retry=tenacity.retry_if_exception(is_retryable_error),
-        reraise=True,
-    )
     async def agenerate_response(
         self, query: str, top_k: int = 3, model_name: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -193,7 +179,7 @@ class SimpleRAG:
         prompt = self.system_prompt.format(query=query, context=context)
 
         try:
-            response = await self.llm_client.aio.models.generate_content(
+            response = await self.llm_client.agenerate_content(
                 model=model_name or self.model_name, contents=prompt
             )
             return {
@@ -202,8 +188,6 @@ class SimpleRAG:
             }
 
         except Exception as e:
-            if is_retryable_error(e):
-                raise e
             return {
                 "answer": f"Error generating response: {str(e)}",
                 "retrieved_docs": retrieved_docs

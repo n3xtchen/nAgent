@@ -3,10 +3,10 @@ import typing as t
 from pathlib import Path
 
 import pandas as pd
-import tenacity
 from google.genai import errors
 from langchain_core.outputs import Generation, LLMResult
-from nagent_core.utils import is_retryable_error, robust_json_parse
+from nagent_core.utils import robust_json_parse
+from nagent_core.llm import LLMClient
 from ragas import Dataset, experiment
 from ragas.cache import CacheInterface
 from ragas.llms import BaseRagasLLM
@@ -30,6 +30,7 @@ class GoogleGenAIWrapper(BaseRagasLLM):
     ):
         super().__init__(cache=cache)
         self.client = client
+        self.llm_client = LLMClient(client)
         self.model = model
         self.run_config = run_config or RunConfig()
 
@@ -38,7 +39,7 @@ class GoogleGenAIWrapper(BaseRagasLLM):
         if "chinese" not in prompt_str.lower():
              prompt_str += "\n\n请使用中文回答 (Please respond in Chinese)."
 
-        response = self.client.models.generate_content(
+        response = self.llm_client.generate_content(
             model=self.model,
             contents=prompt_str
         )
@@ -49,7 +50,7 @@ class GoogleGenAIWrapper(BaseRagasLLM):
         if "chinese" not in prompt_str.lower():
              prompt_str += "\n\n请使用中文回答 (Please respond in Chinese)."
 
-        response = await self.client.aio.models.generate_content(
+        response = await self.llm_client.agenerate_content(
             model=self.model,
             contents=prompt_str
         )
@@ -202,21 +203,13 @@ async def correctness_metric(user_input: str, reference: str, prediction: str, c
     if isinstance(prediction, str) and ("ERROR" in prediction or "Error" in prediction):
         return MetricResult(value=0.0, reason=f"预测出错: {prediction}")
 
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=1, min=2, max=30),
-        stop=tenacity.stop_after_attempt(5),
-        retry=tenacity.retry_if_exception(is_retryable_error),
-        reraise=True
-    )
-    async def _acall_llm():
-        return await client.aio.models.generate_content(
+    llm_client = LLMClient(client)
+    try:
+        response = await llm_client.agenerate_content(
             model=model_name,
             config={"response_mime_type": "application/json"},
             contents=ANSWER_CORRECTNESS_PROMPT.format(user_input=user_input, reference=reference, prediction=prediction)
         )
-
-    try:
-        response = await _acall_llm()
         judge_result = robust_json_parse(response.text)
         return MetricResult(value=float(judge_result["score"]), reason=judge_result["reasoning"])
     except Exception as e:
@@ -230,21 +223,13 @@ async def faithfulness_metric(context: str, prediction: str, client, model_name=
     if not context:
         return MetricResult(value=0.0, reason="无上下文")
 
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=1, min=2, max=30),
-        stop=tenacity.stop_after_attempt(5),
-        retry=tenacity.retry_if_exception(is_retryable_error),
-        reraise=True
-    )
-    async def _acall_llm():
-        return await client.aio.models.generate_content(
+    llm_client = LLMClient(client)
+    try:
+        response = await llm_client.agenerate_content(
             model=model_name,
             config={"response_mime_type": "application/json"},
             contents=FAITHFULNESS_PROMPT.format(context=context, prediction=prediction)
         )
-
-    try:
-        response = await _acall_llm()
         judge_result = robust_json_parse(response.text)
         return MetricResult(value=float(judge_result["score"]), reason=judge_result["reasoning"])
     except Exception as e:
@@ -255,21 +240,13 @@ async def faithfulness_metric(context: str, prediction: str, client, model_name=
 @numeric_metric(name="answer_relevance", allowed_values=(0.0, 5.0))
 async def answer_relevance_metric(user_input: str, prediction: str, client, model_name="gemini-2.0-flash"):
     """评估答案与问题的相关性。"""
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=1, min=2, max=30),
-        stop=tenacity.stop_after_attempt(5),
-        retry=tenacity.retry_if_exception(is_retryable_error),
-        reraise=True
-    )
-    async def _acall_llm():
-        return await client.aio.models.generate_content(
+    llm_client = LLMClient(client)
+    try:
+        response = await llm_client.agenerate_content(
             model=model_name,
             config={"response_mime_type": "application/json"},
             contents=ANSWER_RELEVANCE_PROMPT.format(user_input=user_input, prediction=prediction)
         )
-
-    try:
-        response = await _acall_llm()
         judge_result = robust_json_parse(response.text)
         return MetricResult(value=float(judge_result["score"]), reason=judge_result["reasoning"])
     except Exception as e:

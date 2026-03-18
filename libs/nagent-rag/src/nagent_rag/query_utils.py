@@ -1,5 +1,6 @@
 from typing import List, Any
 import logging
+from nagent_core.llm import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +10,7 @@ class QueryRewriter:
     """
     def __init__(self, client, model_name: str = "gemini-2.0-flash"):
         self.client = client
+        self.llm_client = LLMClient(client)
         self.model_name = model_name
 
     def rewrite(self, query: str) -> str:
@@ -23,7 +25,7 @@ class QueryRewriter:
 
 改写后的查询:"""
         try:
-            response = self.client.models.generate_content(
+            response = self.llm_client.generate_content(
                 model=self.model_name,
                 contents=prompt,
             )
@@ -40,6 +42,7 @@ class QueryDecomposer:
     """
     def __init__(self, client, model_name: str = "gemini-2.0-flash"):
         self.client = client
+        self.llm_client = LLMClient(client)
         self.model_name = model_name
 
     def decompose(self, query: str) -> List[str]:
@@ -54,7 +57,7 @@ class QueryDecomposer:
 
 子查询列表:"""
         try:
-            response = self.client.models.generate_content(
+            response = self.llm_client.generate_content(
                 model=self.model_name,
                 contents=prompt,
             )
