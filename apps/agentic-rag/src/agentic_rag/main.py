@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from google import genai
 from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
 from nagent_rag.retrievers.chroma import ChromaRetriever
+from nagent_rag.models import get_embeddings
 from agentic_rag.rags import AgenticRAG, SimpleRAG, VectorRAG
 
 def main():
@@ -35,9 +36,11 @@ def main():
     client = genai.Client(api_key=api_key)
 
     if args.rag_type == "vector":
-        retriever = ChromaRetriever()
+        embeddings = get_embeddings(client=client)
+        retriever = ChromaRetriever(embedding_function=embeddings)
     else:
-        retriever = SimpleKeywordRetriever()
+        # 使用 jieba 分词以支持中文关键字检索
+        retriever = SimpleKeywordRetriever(tokenizer="jieba")
 
     if args.rag_type == "simple":
         rag_system = SimpleRAG(

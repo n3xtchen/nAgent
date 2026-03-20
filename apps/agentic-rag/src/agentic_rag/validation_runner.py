@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 from agentic_rag.rags import AgenticRAG, SimpleRAG, VectorRAG
 from nagent_rag.retrievers.keyword import SimpleKeywordRetriever
 from nagent_rag.retrievers.chroma import ChromaRetriever
+from nagent_rag.models import get_embeddings
 from nagent_rag.validation import ValidationConfig, ValidationRunner, MetricScore, MetricType, ValidationResult
 from nagent_rag.eval import (
     correctness_metric,
@@ -85,7 +86,8 @@ class AgenticRAGValidationRunner(ValidationRunner):
         # 创建检索器
         print("🔍 正在初始化检索器...")
         if self.rag_type.lower() == "vector":
-            retriever = ChromaRetriever()
+            embeddings = get_embeddings(client=self.client)
+            retriever = ChromaRetriever(embedding_function=embeddings)
         else:
             retriever = SimpleKeywordRetriever()
         retriever.fit(self.all_docs)

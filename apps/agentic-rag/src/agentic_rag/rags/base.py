@@ -85,7 +85,7 @@ class BaseRAG(ABC):
         """
         清空现有索引和文档。
         """
-        self.retriever.documents = []
+        self.retriever.clear()
         if self.index_path and os.path.exists(self.index_path):
             os.remove(self.index_path)
 

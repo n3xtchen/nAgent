@@ -157,6 +157,10 @@ uv run -m agentic_rag.main "这个项目支持哪些 RAG 策略？" --add-docs d
 
 CLI 支持多种 RAG 策略 (`agentic`, `simple`, `vector`) 以及查询改写等高级功能：
 
+- `agentic`: 多步推理、利用工具检索与计算。
+- `simple`: 使用本地关键字检索分词库的单次直给模式。
+- `vector`: 使用 ChromaDB 的语义向量检索的单次直给模式。
+
 ```bash
 uv run -m agentic_rag.main "什么是 Agentic RAG？" \
     --add-docs my_docs.json \
@@ -180,8 +184,9 @@ uv run -m agentic_rag.main "什么是 Agentic RAG？" \
 
 - `src/agentic_rag/rags/`: RAG 核心实现目录。
   - `base.py`: 基础 RAG 抽象类。
-  - `agentic.py`: 基于 ReAct Agent 的复杂 RAG 实现。
-  - `simple.py`: 传统的单次检索与生成 (Simple RAG) 实现。
+  - `agentic.py`: 基于 ReAct Agent 的复杂 RAG 实现 (支持多步推理与工具调用)。
+  - `simple.py`: 传统的单次检索与生成 (Simple RAG) 实现，默认使用关键字检索。
+  - `vector.py`: 基于 Chroma 的单次向量语义检索与生成实现 (无需 Agent 多步推理，直给式)。
 - `src/agentic_rag/main.py`: CLI 入口。
 - `src/agentic_rag/chunk_cli.py`: 文档分块工具 CLI。
 - `example.py`: 演示如何注入文档并进行问答。

@@ -68,7 +68,10 @@
 系统分为三个核心层次：
 1.  **Agent Core**: 负责意图识别、决策调度和对话上下文管理。基于 `nagent-core` 构建。
 2.  **RAG Tools**: 包含各种 Retriever（向量检索、关键词检索、混合检索等）。基于 `nagent-rag` 构建。
-3.  **Application Layer**: `apps/agentic-rag` 作为最终的集成应用，提供 API 或 UI 接口。
+3.  **Application Layer**: `apps/agentic-rag` 作为最终的集成应用，提供 API 或 UI 接口，包括以下三种 RAG 模式：
+    - `AgenticRAG`: 基于 ReAct 推理，使用多种工具自主决策。
+    - `VectorRAG`: 基于语义向量匹配的直给式检索。
+    - `SimpleRAG`: 基于关键字的直给式检索。
 
 ### 5.2 接口规范
 - 扩展 `BaseRetriever` 接口，使其支持更复杂的元数据过滤和参数化配置。

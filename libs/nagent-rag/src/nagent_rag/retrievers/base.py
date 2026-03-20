@@ -38,3 +38,8 @@ class BaseRetriever:
     def load_index(self, file_path: str):
         """Load the index and documents from a file."""
         raise NotImplementedError("Subclasses should implement this method.")
+
+    def clear(self):
+        """Clear the existing index and documents."""
+        self.documents = []
+

@@ -1,24 +1,21 @@
 from typing import Optional, Dict, Any
-from nagent_core.agent import ReActAgent
-from nagent_core.tool import CalculatorTool, PythonInterpreterTool, WebSearchTool
 from nagent_rag.retrievers.base import BaseRetriever
-from nagent_rag.query_utils import QueryRewriter, QueryDecomposer
-from ..tools.vector_tools import VectorSearchTool, VectorStoreTool
+from nagent_core.llm import LLMClient
 from .base import BaseRAG
 
 class VectorRAG(BaseRAG):
     """
-    基于向量检索的 Agentic RAG 系统。
-    使用 VectorSearchTool 进行语义检索，使用 VectorStoreTool 进行动态写入。
+    基于向量检索的 RAG 系统 (已简化为 Simple 模式)。
+    直接使用 Retriever 进行语义检索，然后将上下文喂给大模型一次性回答，不使用 Agent 多跳推理。
     """
     def __init__(
         self,
         client,
         retriever: BaseRetriever,
         model_name: str = "gemini-2.0-flash",
-        max_iterations: int = 5,
+        max_iterations: int = 5, # 保留参数为了兼容 main.py
         index_path: Optional[str] = None,
-        use_query_rewrite: bool = False,
+        use_query_rewrite: bool = False, # 暂时保留，但在简化的流程中可以选择不使用
         use_query_decompose: bool = False,
         trace_dir: Optional[str] = None,
     ):
@@ -30,48 +27,66 @@ class VectorRAG(BaseRAG):
             index_path=index_path,
         )
 
-        self.use_query_rewrite = use_query_rewrite
-        self.use_query_decompose = use_query_decompose
+        self.llm_client = LLMClient(client)
 
-        # 初始化查询优化组件
-        self.rewriter = QueryRewriter(client, model_name=model_name)
-        self.decomposer = QueryDecomposer(client, model_name=model_name)
+    def _build_prompt(self, user_input: str, context: str) -> str:
+        return f"""你是一个智能问答助手。请基于以下通过语义检索到的参考内容回答用户的问题。
+如果参考内容中没有相关信息，请明确告知用户。
 
-        # 使用向量检索和存储工具
-        self.vector_tool = VectorSearchTool(retriever)
-        self.vector_store_tool = VectorStoreTool(retriever)
-        self.calculator_tool = CalculatorTool()
-        self.python_tool = PythonInterpreterTool()
-        self.search_tool = WebSearchTool()
+【参考内容】
+{context}
 
-        self.agent = ReActAgent(
-            client=client,
-            tools=[
-                self.vector_tool,
-                self.vector_store_tool,
-                self.calculator_tool,
-                self.python_tool,
-                self.search_tool
-            ],
-            model_name=model_name,
-            max_iterations=max_iterations,
-        )
+【用户问题】
+{user_input}
+"""
 
     def query(self, user_input: str) -> Dict[str, Any]:
         """
         处理用户查询。
         """
-        processed_input = user_input
+        # 1. 向量语义检索 (默认 k=3)
+        docs = self.retriever.get_top_k(user_input)
 
-        if self.use_query_rewrite:
-            processed_input = self.rewriter.rewrite(user_input)
+        if not docs:
+            context = "没有找到相关的语义匹配结果。"
+        else:
+            formatted_results = []
+            for i, doc in enumerate(docs):
+                content = doc.get("content", "")
+                doc_id = doc.get("id", f"doc_{i}")
+                score = doc.get("_score", "N/A")
+                result_str = f"【结果 {i+1}】(ID: {doc_id}, Score: {score})\n内容: {content}"
+                formatted_results.append(result_str)
+            context = "\n\n---\n\n".join(formatted_results)
 
-        if self.use_query_decompose:
-            sub_queries = self.decomposer.decompose(user_input)
-            if len(sub_queries) > 1:
-                processed_input = f"原始问题: {user_input}\n请参考以下分解后的子问题进行思考和解决：\n" + "\n".join([f"- {q}" for q in sub_queries])
+        # 2. 组装 Prompt
+        prompt = self._build_prompt(user_input, context)
 
-        result = self.agent.query(processed_input)
+        # 3. 生成回答
+        try:
+            response = self.llm_client.generate_content(
+                model=self.model_name,
+                contents=prompt,
+            )
+            answer = response.text
+        except Exception as e:
+            answer = f"生成答案时发生错误: {str(e)}"
+
+        # 4. 构造 Trace (模拟步骤以便 main.py 正常打印)
+        trace = [
+            {
+                "step": 1,
+                "action": "vector_search",
+                "action_input": user_input,
+                "observation": context,
+            }
+        ]
+
+        result = {
+            "answer": answer,
+            "trace": trace,
+        }
+
         self._save_trace(user_input, result)
         return result
 
@@ -79,16 +94,48 @@ class VectorRAG(BaseRAG):
         """
         处理用户查询 (异步)。
         """
-        processed_input = user_input
+        # 1. 向量语义检索
+        docs = self.retriever.get_top_k(user_input)
 
-        if self.use_query_rewrite:
-            processed_input = self.rewriter.rewrite(user_input)
+        if not docs:
+            context = "没有找到相关的语义匹配结果。"
+        else:
+            formatted_results = []
+            for i, doc in enumerate(docs):
+                content = doc.get("content", "")
+                doc_id = doc.get("id", f"doc_{i}")
+                score = doc.get("_score", "N/A")
+                result_str = f"【结果 {i+1}】(ID: {doc_id}, Score: {score})\n内容: {content}"
+                formatted_results.append(result_str)
+            context = "\n\n---\n\n".join(formatted_results)
 
-        if self.use_query_decompose:
-            sub_queries = self.decomposer.decompose(user_input)
-            if len(sub_queries) > 1:
-                processed_input = f"原始问题: {user_input}\n请参考以下分解后的子问题进行思考和解决：\n" + "\n".join([f"- {q}" for q in sub_queries])
+        # 2. 组装 Prompt
+        prompt = self._build_prompt(user_input, context)
 
-        result = await self.agent.aquery(processed_input)
+        # 3. 生成回答
+        try:
+            response = await self.llm_client.agenerate_content(
+                model=self.model_name,
+                contents=prompt,
+            )
+            answer = response.text
+        except Exception as e:
+            answer = f"生成答案时发生错误: {str(e)}"
+
+        # 4. 构造 Trace
+        trace = [
+            {
+                "step": 1,
+                "action": "vector_search",
+                "action_input": user_input,
+                "observation": context,
+            }
+        ]
+
+        result = {
+            "answer": answer,
+            "trace": trace,
+        }
+
         self._save_trace(user_input, result)
         return result

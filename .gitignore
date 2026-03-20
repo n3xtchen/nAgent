@@ -208,3 +208,9 @@ __marimo__/
 
 # jupyter Notebook
 *.ipynb
+
+# Local App Data
+chroma_db/
+traces/
+.ragas_cache/
+
